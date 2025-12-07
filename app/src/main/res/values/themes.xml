@@ -6,4 +6,6 @@
     </style>
 
     <style name="Theme.SplashAndRegist" parent="Base.Theme.SplashAndRegist" />
+
+    <style name="Theme.LoginPage" parent="android:Theme.Material.Light.NoActionBar" />
 </resources>

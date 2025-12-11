@@ -8,8 +8,7 @@ pluginManagement {
             }
         }
         mavenCentral()
-        gradlePluginPortal()
-    }
+        gradlePluginPortal()    }
 }
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
@@ -17,8 +16,8 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
     }
+    // The versionCatalogs block has been removed from here
 }
 
 rootProject.name = "travelapp"
 include(":app")
- 

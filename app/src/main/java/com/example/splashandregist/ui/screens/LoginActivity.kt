@@ -1,4 +1,4 @@
-package com.example.splashandregist // Pastikan sesuai package kamu
+package com.example.splashandregist.ui.screens // Pastikan sesuai package kamu
 
 import android.os.Bundle
 import android.widget.Toast

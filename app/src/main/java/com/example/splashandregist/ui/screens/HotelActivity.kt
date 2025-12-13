@@ -34,7 +34,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import android.os.Bundle
+import androidx.lifecycle.viewModelScope
+import io.github.jan.supabase.postgrest.from
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.mutableStateListOf
 import coil.compose.AsyncImage
+import com.example.splashandregist.SupabaseClient
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerialName
 
 // --- 1. STRUKTUR ACTIVITY ---
 class HotelActivity : ComponentActivity() {
@@ -48,35 +55,78 @@ class HotelActivity : ComponentActivity() {
     }
 }
 
-// --- 2. MODEL DATA (Sementara) ---
-data class Hotel(
-    val id: String,
-    val name: String,
-    val location: String,
-    val price: String,
-    val description: String,
-    val imageUrl: String
-)
-
 // --- 3. VIEWMODEL SEDERHANA (Untuk Simulasi Data) ---
 class HotelViewModel : ViewModel() {
 
-    // PERBAIKAN: 'private val' harus dipisah spasi
-    private val _hotels = mutableStateListOf(
-        Hotel("1", "Hotel Majapahit", "Surabaya", "Rp 1.500.000", "Hotel bersejarah dengan arsitektur kolonial yang indah.", "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Hotel_Majapahit_Surabaya.jpg/1200px-Hotel_Majapahit_Surabaya.jpg"),
-        Hotel("2", "Grand Hyatt", "Jakarta", "Rp 2.800.000", "Pengalaman menginap mewah di pusat kota Jakarta.", "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/29/0e/69/3b/grand-hyatt-jakarta.jpg?w=1200&h=-1&s=1")
-    )
-
+    // List untuk menampung data dari Supabase
+    private val _hotels = mutableStateListOf<Hotel>()
     val hotels: List<Hotel> get() = _hotels
 
-    fun addHotel(hotel: Hotel) {
-        _hotels.add(hotel)
+    // Fungsi untuk MENARIK DATA (READ)
+    fun getHotels() {
+        viewModelScope.launch {
+            try {
+                // 1. Panggil Client Supabase yang sudah kita buat
+                // 2. Pilih tabel "hotels"
+                // 3. Ambil semua data (select)
+                // 4. Terjemahkan jadi List<Hotel> (decodeList)
+                val data = SupabaseClient.client
+                    .from("hotels")
+                    .select()
+                    .decodeList<Hotel>()
+
+                // 5. Masukkan ke list aplikasi biar muncul di layar
+                _hotels.clear()
+                _hotels.addAll(data)
+
+            } catch (e: Exception) {
+                // Kalau error (misal internet mati), print di Logcat
+                e.printStackTrace()
+                println("Error mengambil data: ${e.message}")
+            }
+        }
     }
 
     fun getHotelById(id: String): Hotel? {
-        return _hotels.find { it.id == id }
+        // Karena ID dari Supabase itu Long (Angka), kita harus ubah String ke Long dulu
+        val idLong = id.toLongOrNull()
+        return _hotels.find { it.id == idLong }
+    }
+
+    // Fungsi untuk MENAMBAH DATA (INSERT) - Kita pakai nanti
+    fun addHotel(hotel: Hotel) {
+        viewModelScope.launch {
+            try {
+                SupabaseClient.client
+                    .from("hotels")
+                    .insert(hotel)
+
+                // Setelah berhasil simpan, tarik ulang datanya biar list update
+                getHotels()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
 }
+//class HotelViewModel : ViewModel() {
+//
+//    // PERBAIKAN: 'private val' harus dipisah spasi
+//    private val _hotels = mutableStateListOf(
+//        Hotel("1", "Hotel Majapahit", "Surabaya", "Rp 1.500.000", "Hotel bersejarah dengan arsitektur kolonial yang indah.", "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Hotel_Majapahit_Surabaya.jpg/1200px-Hotel_Majapahit_Surabaya.jpg"),
+//        Hotel("2", "Grand Hyatt", "Jakarta", "Rp 2.800.000", "Pengalaman menginap mewah di pusat kota Jakarta.", "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/29/0e/69/3b/grand-hyatt-jakarta.jpg?w=1200&h=-1&s=1")
+//    )
+//
+//    val hotels: List<Hotel> get() = _hotels
+//
+//    fun addHotel(hotel: Hotel) {
+//        _hotels.add(hotel)
+//    }
+//
+//    fun getHotelById(id: String): Hotel? {
+//        return _hotels.find { it.id == id }
+//    }
+//}
 
 // --- 4. NAVIGASI UTAMA ---
 @Composable
@@ -96,9 +146,27 @@ fun HotelApp() {
         // Halaman Detail (Menerima ID)
         composable("hotel_detail/{hotelId}") { backStackEntry ->
             val hotelId = backStackEntry.arguments?.getString("hotelId")
-            val hotel = viewModel.getHotelById(hotelId ?: "")
-            if (hotel != null) {
-                HotelDetailScreen(navController, hotel)
+
+            // Check for a valid ID before searching
+            if (hotelId != null) {
+                val hotel = viewModel.getHotelById(hotelId)
+
+                // If the hotel is found, show the detail screen
+                if (hotel != null) {
+                    HotelDetailScreen(navController, hotel)
+                } else {
+                    // --- SOLUTION ---
+                    // If hotel is NOT found for that ID, show an error message.
+                    // This prevents the app from crashing.
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("Error: Hotel with ID $hotelId not found.")
+                    }
+                }
+            } else {
+                // Handle the case where the hotelId argument itself is missing
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Error: Invalid navigation. Hotel ID is missing.")
+                }
             }
         }
     }
@@ -108,6 +176,9 @@ fun HotelApp() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HotelListScreen(navController: NavController, viewModel: HotelViewModel) {
+    LaunchedEffect(Unit) {
+        viewModel.getHotels()
+    }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -248,7 +319,6 @@ fun AddHotelScreen(navController: NavController, viewModel: HotelViewModel) {
                     if (name.isNotEmpty() && price.isNotEmpty()) {
                         // Simpan ke ViewModel (Nanti diganti Supabase)
                         val newHotel = Hotel(
-                            id = System.currentTimeMillis().toString(),
                             name = name,
                             location = location,
                             price = "Rp $price",
@@ -340,3 +410,26 @@ fun HotelDetailScreen(navController: NavController, hotel: Hotel) {
         }
     }
 }
+
+@Serializable // 👈 WAJIB ADA: Biar bisa dikirim ke internet
+data class Hotel(
+    val id: Long? = null, // ID bisa null saat kita baru mau Insert (karena otomatis dari DB)
+
+    @SerialName("name") // Nama kolom di Supabase
+    val name: String,
+
+    @SerialName("location")
+    val location: String,
+
+    @SerialName("price")
+    val price: String,
+
+    @SerialName("description")
+    val description: String,
+
+    @SerialName("image_url") // 👈 PENTING: Di Supabase 'image_url', di sini 'imageUrl'
+    val imageUrl: String,
+
+    @SerialName("user_id") // Buat RLS nanti
+    val userId: String? = null
+)

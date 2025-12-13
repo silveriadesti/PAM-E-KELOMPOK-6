@@ -2,6 +2,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
+    kotlin("plugin.serialization") version "1.9.0"
 }
 
 android {
@@ -44,6 +45,16 @@ android {
 }
 
 dependencies {
+    implementation(platform("io.github.jan-tennert.supabase:bom:3.0.0")) // Versi BOM biar stabil
+    implementation("io.github.jan-tennert.supabase:postgrest-kt") // Untuk Database
+    implementation("io.github.jan-tennert.supabase:storage-kt")   // Untuk Gambar
+    implementation("io.github.jan-tennert.supabase:auth-kt")
+    implementation("io.ktor:ktor-client-android:3.0.0")
+
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+
+    implementation("io.coil-kt:coil-compose:2.4.0")
+
     implementation("androidx.core:core-ktx:1.17.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.10.0")
     implementation("androidx.activity:activity-compose:1.12.1")

@@ -1,5 +1,0 @@
-package viewmodel
-
-class HotelViewModel {
-
-}

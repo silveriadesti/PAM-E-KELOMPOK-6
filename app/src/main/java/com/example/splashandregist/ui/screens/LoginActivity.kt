@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import android.content.Intent
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -25,6 +26,9 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import com.example.splashandregist.viewmodel.LoginViewModel
 
 
 class LoginActivity : ComponentActivity() {
@@ -37,16 +41,34 @@ class LoginActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    LoginScreen()
+                    LoginScreen(
+                        onNavigateToAdmin = {
+                            // Pindah ke HotelActivity (Halaman Admin)
+                            startActivity(Intent(this, HotelActivity::class.java))
+                            finish() // Agar pas diback gak balik ke login
+                        },
+                        onNavigateToCustomer = {
+                            // NANTI: Pindah ke CustomerActivity
+                            Toast.makeText(this, "Halo Customer! Halaman Booking belum dibuat.", Toast.LENGTH_LONG).show()
+                            // startActivity(Intent(this, CustomerActivity::class.java))
+                        }
+                    )
                 }
             }
         }
     }
 }
 
+
 @Composable
-fun LoginScreen() {
+fun LoginScreen(
+    onNavigateToAdmin: () -> Unit,
+    onNavigateToCustomer: () -> Unit
+) {
     val context = LocalContext.current
+    val viewModel = remember { LoginViewModel() }
+    val isLoading by viewModel.isLoading
+
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
@@ -105,7 +127,22 @@ fun LoginScreen() {
         Button(
             onClick = {
                 if (email.isNotEmpty() && password.isNotEmpty()) {
-                    Toast.makeText(context, "Login Berhasil: $email", Toast.LENGTH_SHORT).show()
+                    // Panggil fungsi Login di ViewModel
+                    viewModel.login(
+                        context = context,
+                        emailInput = email,
+                        passwordInput = password,
+                        onLoginSuccess = { role ->
+                            // LOGIKA PENENTU HALAMAN 👇
+                            if (role == "admin") {
+                                Toast.makeText(context, "Welcome Admin!", Toast.LENGTH_SHORT).show()
+                                onNavigateToAdmin()
+                            } else {
+                                Toast.makeText(context, "Welcome Customer!", Toast.LENGTH_SHORT).show()
+                                onNavigateToCustomer()
+                            }
+                        }
+                    )
                 } else {
                     Toast.makeText(context, "Email dan Password wajib diisi!", Toast.LENGTH_SHORT).show()
                 }

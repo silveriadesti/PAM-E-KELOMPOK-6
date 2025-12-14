@@ -1,8 +1,14 @@
 package com.example.splashandregist.ui.screens
 
+import android.net.Uri
+import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -16,7 +22,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,17 +31,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.runtime.mutableStateListOf
-import androidx.lifecycle.ViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import android.os.Bundle
 import coil.compose.AsyncImage
 
-// --- 1. STRUKTUR ACTIVITY ---
+// --- 1. ACTIVITY UTAMA ---
 class HotelActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,66 +49,56 @@ class HotelActivity : ComponentActivity() {
     }
 }
 
-// --- 2. MODEL DATA (Sementara) ---
-data class Hotel(
-    val id: String,
-    val name: String,
-    val location: String,
-    val price: String,
-    val description: String,
-    val imageUrl: String
-)
-
-// --- 3. VIEWMODEL SEDERHANA (Untuk Simulasi Data) ---
-class HotelViewModel : ViewModel() {
-
-    // PERBAIKAN: 'private val' harus dipisah spasi
-    private val _hotels = mutableStateListOf(
-        Hotel("1", "Hotel Majapahit", "Surabaya", "Rp 1.500.000", "Hotel bersejarah dengan arsitektur kolonial yang indah.", "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Hotel_Majapahit_Surabaya.jpg/1200px-Hotel_Majapahit_Surabaya.jpg"),
-        Hotel("2", "Grand Hyatt", "Jakarta", "Rp 2.800.000", "Pengalaman menginap mewah di pusat kota Jakarta.", "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/29/0e/69/3b/grand-hyatt-jakarta.jpg?w=1200&h=-1&s=1")
-    )
-
-    val hotels: List<Hotel> get() = _hotels
-
-    fun addHotel(hotel: Hotel) {
-        _hotels.add(hotel)
-    }
-
-    fun getHotelById(id: String): Hotel? {
-        return _hotels.find { it.id == id }
-    }
-}
-
-// --- 4. NAVIGASI UTAMA ---
+// --- 2. PENGATURAN NAVIGASI (NavHost) ---
 @Composable
 fun HotelApp() {
     val navController = rememberNavController()
-    val viewModel = remember { HotelViewModel() } // Inisialisasi ViewModel
+    // Pastikan HotelViewModel sudah ada di file HotelViewModel.kt
+    val viewModel = remember { HotelViewModel() }
 
+    // PENTING: startDestination harus "hotel_list" dan harus ada composable-nya di bawah
     NavHost(navController = navController, startDestination = "hotel_list") {
-        // Halaman List
+
+        // Rute 1: List Hotel
         composable("hotel_list") {
             HotelListScreen(navController, viewModel)
         }
-        // Halaman Tambah (Form)
+
+        // Rute 2: Tambah Hotel
         composable("add_hotel") {
             AddHotelScreen(navController, viewModel)
         }
-        // Halaman Detail (Menerima ID)
+
+        // Rute 3: Detail Hotel
         composable("hotel_detail/{hotelId}") { backStackEntry ->
             val hotelId = backStackEntry.arguments?.getString("hotelId")
-            val hotel = viewModel.getHotelById(hotelId ?: "")
-            if (hotel != null) {
-                HotelDetailScreen(navController, hotel)
+            if (hotelId != null) {
+                val hotel = viewModel.getHotelById(hotelId)
+                if (hotel != null) {
+                    HotelDetailScreen(navController, hotel)
+                }
+            }
+        }
+
+        // Rute 4: Edit Hotel (Fitur Baru)
+        composable("edit_hotel/{hotelId}") { backStackEntry ->
+            val hotelId = backStackEntry.arguments?.getString("hotelId")
+            if (hotelId != null) {
+                EditHotelScreen(navController, viewModel, hotelId)
             }
         }
     }
 }
 
-// --- 5. LAYAR DAFTAR HOTEL (HotelListScreen) ---
+// --- 3. LAYAR LIST HOTEL ---
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HotelListScreen(navController: NavController, viewModel: HotelViewModel) {
+    // Refresh data saat layar dibuka
+    LaunchedEffect(Unit) {
+        viewModel.getHotels()
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -144,23 +135,17 @@ fun HotelListScreen(navController: NavController, viewModel: HotelViewModel) {
 @Composable
 fun HotelItem(hotel: Hotel, onClick: () -> Unit) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
+        modifier = Modifier.fillMaxWidth().clickable { onClick() },
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Column {
-            // Gambar Hotel
             AsyncImage(
                 model = hotel.imageUrl,
                 contentDescription = hotel.name,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(180.dp),
+                modifier = Modifier.fillMaxWidth().height(180.dp),
                 contentScale = ContentScale.Crop
             )
-            // Info Hotel
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(text = hotel.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -175,7 +160,7 @@ fun HotelItem(hotel: Hotel, onClick: () -> Unit) {
     }
 }
 
-// --- 6. LAYAR TAMBAH HOTEL (AddHotelScreen) ---
+// --- 4. LAYAR TAMBAH HOTEL ---
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddHotelScreen(navController: NavController, viewModel: HotelViewModel) {
@@ -183,160 +168,193 @@ fun AddHotelScreen(navController: NavController, viewModel: HotelViewModel) {
     var location by remember { mutableStateOf("") }
     var price by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    var imageUrl by remember { mutableStateOf("") }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
 
+    val isUploading by viewModel.isUploading
     val context = LocalContext.current
+
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+        onResult = { uri -> selectedImageUri = uri }
+    )
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Tambah Hotel Baru") },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = { navController.popBackStack() }, enabled = !isUploading) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
         }
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .padding(paddingValues)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState())
-        ) {
-            OutlinedTextField(
-                value = name, onValueChange = { name = it },
-                label = { Text("Nama Hotel") },
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-
-            OutlinedTextField(
-                value = location, onValueChange = { location = it },
-                label = { Text("Lokasi") },
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-
-            OutlinedTextField(
-                value = price, onValueChange = { price = it },
-                label = { Text("Harga per Malam (Rp)") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-
-            OutlinedTextField(
-                value = description, onValueChange = { description = it },
-                label = { Text("Deskripsi") },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 3
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-
-            OutlinedTextField(
-                value = imageUrl, onValueChange = { imageUrl = it },
-                label = { Text("URL Gambar Hotel") },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("https://...") }
-            )
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Button(
-                onClick = {
-                    if (name.isNotEmpty() && price.isNotEmpty()) {
-                        // Simpan ke ViewModel (Nanti diganti Supabase)
-                        val newHotel = Hotel(
-                            id = System.currentTimeMillis().toString(),
-                            name = name,
-                            location = location,
-                            price = "Rp $price",
-                            description = description,
-                            imageUrl = imageUrl
-                        )
-                        viewModel.addHotel(newHotel)
-                        Toast.makeText(context, "Hotel Berhasil Disimpan!", Toast.LENGTH_SHORT).show()
-                        navController.popBackStack()
-                    } else {
-                        Toast.makeText(context, "Nama dan Harga wajib diisi!", Toast.LENGTH_SHORT).show()
-                    }
-                },
-                modifier = Modifier.fillMaxWidth().height(50.dp)
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .padding(paddingValues)
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState())
             ) {
-                Text("Simpan Data Hotel")
+                // Upload Image Box
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .border(1.dp, Color.Gray, RoundedCornerShape(12.dp))
+                        .clickable(enabled = !isUploading) {
+                            photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (selectedImageUri != null) {
+                        AsyncImage(model = selectedImageUri, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                    } else {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.Add, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(40.dp))
+                            Text("Ketuk untuk pilih gambar", color = Color.Gray)
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Inputs
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nama Hotel") }, modifier = Modifier.fillMaxWidth(), enabled = !isUploading)
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(value = location, onValueChange = { location = it }, label = { Text("Lokasi") }, modifier = Modifier.fillMaxWidth(), enabled = !isUploading)
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(value = price, onValueChange = { price = it }, label = { Text("Harga (Angka)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth(), enabled = !isUploading)
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Deskripsi") }, modifier = Modifier.fillMaxWidth(), minLines = 3, enabled = !isUploading)
+
+                Spacer(modifier = Modifier.height(24.dp))
+                Button(
+                    onClick = {
+                        if (name.isNotEmpty() && price.isNotEmpty() && selectedImageUri != null) {
+                            viewModel.uploadImageAndSaveHotel(context, selectedImageUri!!, name, location, price, description) {
+                                Toast.makeText(context, "Berhasil!", Toast.LENGTH_SHORT).show()
+                                navController.popBackStack()
+                            }
+                        } else {
+                            Toast.makeText(context, "Lengkapi semua data!", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    enabled = !isUploading
+                ) {
+                    Text(if (isUploading) "Menyimpan..." else "Simpan")
+                }
             }
+            if (isUploading) CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
         }
     }
 }
 
-// --- 7. LAYAR DETAIL HOTEL (HotelDetailScreen) ---
+// --- 5. LAYAR DETAIL HOTEL ---
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HotelDetailScreen(navController: NavController, hotel: Hotel) {
     Scaffold(
         bottomBar = {
-            // Tombol Booking/Edit di bawah
             Button(
-                onClick = { /* Nanti logika Edit atau Delete */ },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-                    .height(50.dp),
+                onClick = {
+                    // Navigasi ke Edit
+                    navController.navigate("edit_hotel/${hotel.id}")
+                },
+                modifier = Modifier.fillMaxWidth().padding(16.dp).height(50.dp),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text("Edit Data Hotel")
             }
         }
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
-        ) {
-            // Gambar Header Full
+        Column(modifier = Modifier.padding(paddingValues).verticalScroll(rememberScrollState())) {
             Box {
-                AsyncImage(
-                    model = hotel.imageUrl,
-                    contentDescription = hotel.name,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(300.dp),
-                    contentScale = ContentScale.Crop
-                )
-                // Tombol Back di atas gambar
-                IconButton(
-                    onClick = { navController.popBackStack() },
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .align(Alignment.TopStart)
-                ) {
+                AsyncImage(model = hotel.imageUrl, contentDescription = null, modifier = Modifier.fillMaxWidth().height(300.dp), contentScale = ContentScale.Crop)
+                IconButton(onClick = { navController.popBackStack() }, modifier = Modifier.padding(16.dp).align(Alignment.TopStart)) {
                     Surface(shape = RoundedCornerShape(50), color = Color.White.copy(alpha = 0.7f)) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back", modifier = Modifier.padding(8.dp))
                     }
                 }
             }
-
-            // Konten Detail
             Column(modifier = Modifier.padding(24.dp)) {
-                Text(text = hotel.name, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-
+                Text(hotel.name, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = hotel.location, style = MaterialTheme.typography.bodyLarge)
-                }
-
+                Text(hotel.location, style = MaterialTheme.typography.bodyLarge)
                 Spacer(modifier = Modifier.height(16.dp))
-                Text(text = "Harga per Malam", style = MaterialTheme.typography.labelLarge, color = Color.Gray)
-                Text(text = hotel.price, style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-
+                Text(hotel.price, style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(24.dp))
-                Text(text = "Deskripsi", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(text = hotel.description, style = MaterialTheme.typography.bodyMedium, lineHeight = 24.sp)
+                Text(hotel.description, style = MaterialTheme.typography.bodyMedium)
             }
+        }
+    }
+}
+
+// --- 6. LAYAR EDIT HOTEL (NEW) ---
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EditHotelScreen(navController: NavController, viewModel: HotelViewModel, hotelId: String) {
+    val hotelToEdit = viewModel.getHotelById(hotelId)
+
+    var name by remember { mutableStateOf(hotelToEdit?.name ?: "") }
+    var location by remember { mutableStateOf(hotelToEdit?.location ?: "") }
+    var price by remember { mutableStateOf(hotelToEdit?.price?.replace("Rp ", "") ?: "") }
+    var description by remember { mutableStateOf(hotelToEdit?.description ?: "") }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    val currentImageUrl = hotelToEdit?.imageUrl ?: ""
+
+    val isUploading by viewModel.isUploading
+    val context = LocalContext.current
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+        onResult = { uri -> selectedImageUri = uri }
+    )
+
+    Scaffold(
+        topBar = { TopAppBar(title = { Text("Edit Hotel") }, navigationIcon = { IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.Default.ArrowBack, "Back") } }) }
+    ) { paddingValues ->
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.padding(paddingValues).padding(16.dp).verticalScroll(rememberScrollState())) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().height(200.dp).border(1.dp, Color.Gray, RoundedCornerShape(12.dp)).clickable(enabled = !isUploading) {
+                        photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (selectedImageUri != null) {
+                        AsyncImage(model = selectedImageUri, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                    } else {
+                        AsyncImage(model = currentImageUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                    }
+                    Surface(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), color = Color.Black.copy(alpha = 0.5f)) {
+                        Text("Ketuk untuk ganti foto", color = Color.White, textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.padding(8.dp))
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nama") }, modifier = Modifier.fillMaxWidth())
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(value = location, onValueChange = { location = it }, label = { Text("Lokasi") }, modifier = Modifier.fillMaxWidth())
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(value = price, onValueChange = { price = it }, label = { Text("Harga") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Deskripsi") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
+                Spacer(modifier = Modifier.height(24.dp))
+                Button(
+                    onClick = {
+                        if (name.isNotEmpty() && price.isNotEmpty() && hotelToEdit != null) {
+                            viewModel.updateHotel(context, hotelToEdit.id!!, selectedImageUri, currentImageUrl, name, location, if (price.startsWith("Rp")) price else "Rp $price", description) {
+                                Toast.makeText(context, "Updated!", Toast.LENGTH_SHORT).show()
+                                navController.popBackStack()
+                                navController.popBackStack()
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    enabled = !isUploading
+                ) { Text(if (isUploading) "Updating..." else "Update") }
+            }
+            if (isUploading) CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
         }
     }
 }

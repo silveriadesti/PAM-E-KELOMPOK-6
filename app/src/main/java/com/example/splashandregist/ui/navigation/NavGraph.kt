@@ -1,4 +1,4 @@
-package com.example.splashandregist.navigation
+package com.example.splashandregist.ui.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost

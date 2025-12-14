@@ -34,13 +34,41 @@
         <activity
             android:name=".ui.screens.TransportActivity"
             android:exported="true"
+            android:exported="false"
             android:theme="@style/Theme.Material3.DayNight.NoActionBar">
+        </activity>
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true" >
+        <intent-filter>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent-filter>
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+        </activity>
+
+        <activity
+            android:name=".ui.screens.HotelActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Material3.DayNight.NoActionBar">
+        </activity>
+
+        <activity
+            android:name=".ui.screens.DestinationActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Material3.DayNight.NoActionBar">
+        </activity>
+
+        <activity
+            android:name=".ui.screens.PromoActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Material3.DayNight.NoActionBar">
         </activity>
 
     </application>

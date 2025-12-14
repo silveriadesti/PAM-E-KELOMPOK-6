@@ -34,6 +34,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import androidx.core.view.WindowCompat
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.net.Uri
+import androidx.activity.result.PickVisualMediaRequest
 
 // --- 1. ACTIVITY OPSIONAL JIKA MAU DIPISAH ---
 class TransportActivity : ComponentActivity() {
@@ -201,15 +205,23 @@ fun TransportItem(t: Transport, onClick: () -> Unit) {
                 Text(t.type, color = Color.Gray)
                 Spacer(modifier = Modifier.height(2.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(16.dp))
+                    Icon(
+                        Icons.Default.LocationOn,
+                        contentDescription = null,
+                        tint = Color.Gray,
+                        modifier = Modifier.size(16.dp)
+                    )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(t.route, color = Color.Gray)
-                    Text(
-                        text = "Kapasitas: ${t.capacity} penumpang",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.Gray
-                    )
                 }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "Kapasitas: ${t.capacity} penumpang",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(t.price, style = MaterialTheme.typography.titleMedium, color = Color(0xFF2196F3))
             }
@@ -227,10 +239,17 @@ fun AddTransportScreen(navController: NavController, viewModel: TransportViewMod
     var route by remember { mutableStateOf("") }
     var capacity by remember { mutableStateOf("") }
     var price by remember { mutableStateOf("") }
-    var imageUrl by remember { mutableStateOf("") }
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
     var description by remember { mutableStateOf("") }
 
     val context = LocalContext.current
+
+    val launcher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.PickVisualMedia()
+        ) { uri ->
+            imageUri = uri
+        }
 
     Scaffold(
         topBar = {
@@ -282,8 +301,31 @@ fun AddTransportScreen(navController: NavController, viewModel: TransportViewMod
             )
             Spacer(Modifier.height(8.dp))
 
-            OutlinedTextField(value = imageUrl, onValueChange = { imageUrl = it }, label = { Text("URL Gambar") }, modifier = Modifier.fillMaxWidth())
-            Spacer(Modifier.height(8.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(180.dp)
+                    .clickable {
+                        launcher.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                if (imageUri == null) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Default.Add, contentDescription = null, tint = Color.Gray)
+                        Text("Pilih Gambar Transport", color = Color.Gray)
+                    }
+                } else {
+                    AsyncImage(
+                        model = imageUri,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+            }
 
             OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Deskripsi") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
             Spacer(Modifier.height(24.dp))
@@ -298,7 +340,7 @@ fun AddTransportScreen(navController: NavController, viewModel: TransportViewMod
                             route = route,
                             capacity = capacity.toIntOrNull() ?: 0,
                             price = "Rp $price",
-                            imageUrl = imageUrl,
+                            imageUrl = imageUri.toString(),
                             description = description
                         )
                         viewModel.addTransport(newTransport)
@@ -325,10 +367,17 @@ fun EditTransportScreen(navController: NavController, viewModel: TransportViewMo
     var route by remember { mutableStateOf(t.route) }
     var capacity by remember { mutableStateOf("") }
     var price by remember { mutableStateOf(t.price.replace("Rp ", "")) }
-    var imageUrl by remember { mutableStateOf(t.imageUrl) }
+    var imageUri by remember { mutableStateOf<Uri?>(Uri.parse(t.imageUrl)) }
     var description by remember { mutableStateOf(t.description) }
 
     val context = LocalContext.current
+
+    val launcher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.PickVisualMedia()
+        ) { uri ->
+            imageUri = uri
+        }
 
     Scaffold(
         topBar = {
@@ -380,8 +429,29 @@ fun EditTransportScreen(navController: NavController, viewModel: TransportViewMo
             )
             Spacer(Modifier.height(8.dp))
 
-            OutlinedTextField(value = imageUrl, onValueChange = { imageUrl = it }, label = { Text("URL Gambar") }, modifier = Modifier.fillMaxWidth())
-            Spacer(Modifier.height(8.dp))
+            Button(
+                onClick = {
+                    launcher.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Ganti Gambar Transport")
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            imageUri?.let {
+                AsyncImage(
+                    model = it,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp),
+                    contentScale = ContentScale.Crop
+                )
+            }
 
             OutlinedTextField(
                 value = description,
@@ -401,7 +471,7 @@ fun EditTransportScreen(navController: NavController, viewModel: TransportViewMo
                         route = route,
                         capacity = capacity.toInt(),
                         price = "Rp $price",
-                        imageUrl = imageUrl,
+                        imageUrl = imageUri.toString(),
                         description = description
                     )
                     viewModel.updateTransport(updated)
@@ -429,11 +499,12 @@ fun TransportDetailScreen(navController: NavController, viewModel: TransportView
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(16.dp)
+                    .navigationBarsPadding(), // 🔥 INI KUNCI NYA
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
 
-                // Edit
+            // Edit
                 Button(
                     onClick = { navController.navigate("edit_transport/${t.id}") },
                     modifier = Modifier.weight(1f).height(50.dp),

@@ -1,163 +1,107 @@
 package com.example.splashandregist.ui.screens
 
+import android.net.Uri
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import coil.compose.AsyncImage
+import com.example.splashandregist.viewmodel.Destinations
+import com.example.splashandregist.viewmodel.DestinationViewModel
 
+// --- 1. ACTIVITY UTAMA ---
 class DestinationActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            TravelAppTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    DestinationScreen()
-                }
+            MaterialTheme {
+                DestinationApp()
             }
         }
     }
 }
 
+// --- 2. PENGATURAN NAVIGASI (NavHost) ---
 @Composable
-fun TravelAppTheme(content: @Composable () -> Unit) {
-    MaterialTheme(
-        colorScheme = lightColorScheme(
-            primary = Color(0xFF2196F3),
-            secondary = Color(0xFF03A9F4),
-            background = Color(0xFFF5F5F5)
-        ),
-        content = content
-    )
-}
+fun DestinationApp() {
+    val navController = rememberNavController()
+    val viewModel = remember { DestinationViewModel() }
 
-// Data Model
-data class Destination(
-    val id: String = "",
-    val title: String = "",
-    val location: String = "",
-    val description: String = "",
-    val price: Double = 0.0,
-    val imageUrl: String = "",
-    val userId: String = "",
-    val createdAt: String = ""
-)
+    NavHost(navController = navController, startDestination = "destination_list") {
 
-// Main App
-@Composable
-fun DestinationScreen() {
-    // State untuk menyimpan data
-    val destinations = remember {
-        mutableStateListOf(
-            Destination(
-                id = "1",
-                title = "Pantai Kuta",
-                location = "Bali",
-                description = "Pantai terkenal dengan sunset yang indah dan ombak yang cocok untuk surfing. Tempat yang sempurna untuk bersantai dan menikmati keindahan alam.",
-                price = 50000.0,
-                imageUrl = "kuta",
-                userId = "user1",
-                createdAt = "2024-12-08"
-            ),
-            Destination(
-                id = "2",
-                title = "Candi Borobudur",
-                location = "Yogyakarta",
-                description = "Candi Buddha terbesar di dunia dengan arsitektur yang menakjubkan. Situs warisan dunia UNESCO yang wajib dikunjungi.",
-                price = 75000.0,
-                imageUrl = "borobudur",
-                userId = "user1",
-                createdAt = "2024-12-07"
-            ),
-            Destination(
-                id = "3",
-                title = "Danau Toba",
-                location = "Sumatera Utara",
-                description = "Danau vulkanik terbesar di Indonesia dengan pemandangan yang memukau. Udara sejuk dan pemandangan yang sangat indah.",
-                price = 100000.0,
-                imageUrl = "toba",
-                userId = "user1",
-                createdAt = "2024-12-06"
-            )
-        )
-    }
-
-    var currentScreen by remember { mutableStateOf("list") }
-    var selectedDestinationId by remember { mutableStateOf<String?>(null) }
-
-    when (currentScreen) {
-        "list" -> {
-            DestinationListScreen(
-                destinations = destinations,
-                onNavigateToDetail = { id ->
-                    selectedDestinationId = id
-                    currentScreen = "detail"
-                },
-                onNavigateToAdd = {
-                    currentScreen = "add"
-                }
-            )
+        // Rute 1: List Destination
+        composable("destination_list") {
+            DestinationListScreen(navController, viewModel)
         }
-        "detail" -> {
-            DestinationDetailScreen(
-                destination = destinations.find { it.id == selectedDestinationId },
-                onNavigateBack = {
-                    currentScreen = "list"
-                },
-                onDelete = { id ->
-                    destinations.removeIf { it.id == id }
-                    currentScreen = "list"
-                }
-            )
+
+        // Rute 2: Tambah Destination
+        composable("add_destination") {
+            AddDestinationScreen(navController, viewModel)
         }
-        "add" -> {
-            AddDestinationScreen(
-                onSaveDestination = { newDestination ->
-                    val destination = newDestination.copy(
-                        id = (destinations.size + 1).toString(),
-                        createdAt = System.currentTimeMillis().toString(),
-                        userId = "user1"
-                    )
-                    destinations.add(0, destination)
-                    currentScreen = "list"
-                },
-                onNavigateBack = {
-                    currentScreen = "list"
+
+        // Rute 3: Detail Destination
+        composable("destination_detail/{destinationId}") { backStackEntry ->
+            val destinationId = backStackEntry.arguments?.getString("destinationId")
+            if (destinationId != null) {
+                val destination = viewModel.getDestinationById(destinationId)
+                if (destination != null) {
+                    DestinationDetailScreen(navController, destination)
                 }
-            )
+            }
+        }
+
+        // Rute 4: Edit Destination
+        composable("edit_destination/{destinationId}") { backStackEntry ->
+            val destinationId = backStackEntry.arguments?.getString("destinationId")
+            if (destinationId != null) {
+                EditDestinationScreen(navController, viewModel, destinationId)
+            }
         }
     }
 }
 
-// List Screen
+// --- 3. LAYAR LIST DESTINATION ---
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DestinationListScreen(
-    destinations: List<Destination>,
-    onNavigateToDetail: (String) -> Unit,
-    onNavigateToAdd: () -> Unit
-) {
+fun DestinationListScreen(navController: NavController, viewModel: DestinationViewModel) {
+    LaunchedEffect(Unit) {
+        viewModel.getDestinations()
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Destinasi Wisata", fontWeight = FontWeight.Bold) },
+                title = { Text("Admin Destinasi Wisata") },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = Color.White
@@ -166,397 +110,362 @@ fun DestinationListScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = onNavigateToAdd,
+                onClick = { navController.navigate("add_destination") },
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Tambah Destinasi", tint = Color.White)
             }
         }
-    ) { padding ->
+    ) { paddingValues ->
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(paddingValues)
         ) {
-            items(destinations) { destination ->
-                DestinationCard(
-                    destination = destination,
-                    onClick = { onNavigateToDetail(destination.id) }
-                )
+            items(viewModel.destinations) { destination ->
+                DestinationItem(destination) {
+                    navController.navigate("destination_detail/${destination.id}")
+                }
             }
         }
     }
 }
 
 @Composable
-fun DestinationCard(destination: Destination, onClick: () -> Unit) {
+fun DestinationItem(destination: Destinations, onClick: () -> Unit) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
+        modifier = Modifier.fillMaxWidth().clickable { onClick() },
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        shape = RoundedCornerShape(12.dp)
+        colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Column {
-            // Placeholder image dengan gradient
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(180.dp)
-                    .background(
-                        brush = androidx.compose.ui.graphics.Brush.verticalGradient(
-                            colors = listOf(
-                                Color(0xFF2196F3),
-                                Color(0xFF03A9F4)
-                            )
-                        )
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    Icons.Default.Place,
-                    contentDescription = null,
-                    modifier = Modifier.size(64.dp),
-                    tint = Color.White.copy(alpha = 0.5f)
-                )
-            }
-
+            AsyncImage(
+                model = destination.image_url,
+                contentDescription = destination.name,
+                modifier = Modifier.fillMaxWidth().height(180.dp),
+                contentScale = ContentScale.Crop
+            )
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = destination.title,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(4.dp))
+                Text(text = destination.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.LocationOn,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = Color.Gray
-                    )
+                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = destination.location,
-                        color = Color.Gray,
-                        fontSize = 14.sp
-                    )
+                    Text(text = destination.location, style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
                 }
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = destination.description,
-                    fontSize = 14.sp,
-                    maxLines = 2,
-                    color = Color.DarkGray
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Rp ${String.format("%,.0f", destination.price)}",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF2196F3)
-                )
+                Text(text = destination.price, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
             }
         }
     }
 }
 
-// Detail Screen
+// --- 4. LAYAR TAMBAH DESTINATION ---
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DestinationDetailScreen(
-    destination: Destination?,
-    onNavigateBack: () -> Unit,
-    onDelete: (String) -> Unit
-) {
-    var showDeleteDialog by remember { mutableStateOf(false) }
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Detail Destinasi") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = Color.White
-                )
-            )
-        }
-    ) { padding ->
-        destination?.let { dest ->
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-            ) {
-                item {
-                    // Placeholder image dengan gradient
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(300.dp)
-                            .background(
-                                brush = androidx.compose.ui.graphics.Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color(0xFF2196F3),
-                                        Color(0xFF03A9F4)
-                                    )
-                                )
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            Icons.Default.Place,
-                            contentDescription = null,
-                            modifier = Modifier.size(120.dp),
-                            tint = Color.White.copy(alpha = 0.5f)
-                        )
-                    }
-                }
-                item {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = dest.title,
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Default.LocationOn,
-                                contentDescription = null,
-                                tint = Color(0xFF2196F3)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = dest.location,
-                                fontSize = 16.sp,
-                                color = Color.Gray
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "Deskripsi",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = dest.description,
-                            fontSize = 16.sp,
-                            lineHeight = 24.sp
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = Color(0xFFE3F2FD)
-                            )
-                        ) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Text(
-                                    text = "Harga Tiket Masuk",
-                                    fontSize = 14.sp,
-                                    color = Color.Gray
-                                )
-                                Text(
-                                    text = "Rp ${String.format("%,.0f", dest.price)}",
-                                    fontSize = 24.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF2196F3)
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Tombol Delete untuk Admin
-                        Button(
-                            onClick = { showDeleteDialog = true },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFFDC3545)
-                            )
-                        ) {
-                            Icon(Icons.Default.Delete, contentDescription = null)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Hapus Destinasi", fontSize = 16.sp)
-                        }
-                    }
-                }
-            }
-
-            // Dialog Konfirmasi Hapus
-            if (showDeleteDialog) {
-                AlertDialog(
-                    onDismissRequest = { showDeleteDialog = false },
-                    title = { Text("Hapus Destinasi") },
-                    text = { Text("Apakah Anda yakin ingin menghapus destinasi ini?") },
-                    confirmButton = {
-                        Button(
-                            onClick = {
-                                dest.id.let { onDelete(it) }
-                                showDeleteDialog = false
-                            },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFFDC3545)
-                            )
-                        ) {
-                            Text("Hapus")
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { showDeleteDialog = false }) {
-                            Text("Batal")
-                        }
-                    }
-                )
-            }
-        } ?: run {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("Destinasi tidak ditemukan")
-            }
-        }
-    }
-}
-
-// Add Screen
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun AddDestinationScreen(
-    onSaveDestination: (Destination) -> Unit,
-    onNavigateBack: () -> Unit
-) {
-    var title by remember { mutableStateOf("") }
+fun AddDestinationScreen(navController: NavController, viewModel: DestinationViewModel) {
+    var name by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
     var price by remember { mutableStateOf("") }
-    var imageUrl by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+
+    val isUploading = viewModel.isUploading
+    val context = LocalContext.current
+
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+        onResult = { uri -> selectedImageUri = uri }
+    )
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Tambah Destinasi") },
+                title = { Text("Tambah Destinasi Baru") },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    IconButton(onClick = { navController.popBackStack() }, enabled = !isUploading) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = Color.White
-                )
+                }
             )
         }
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            item {
+    ) { paddingValues ->
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .padding(paddingValues)
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .border(1.dp, Color.Gray, RoundedCornerShape(12.dp))
+                        .clickable(enabled = !isUploading) {
+                            photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (selectedImageUri != null) {
+                        AsyncImage(model = selectedImageUri, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                    } else {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.Add, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(40.dp))
+                            Text("Ketuk untuk pilih gambar", color = Color.Gray)
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+
                 OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
+                    value = name,
+                    onValueChange = { name = it },
                     label = { Text("Nama Destinasi") },
-                    placeholder = { Text("Contoh: Pantai Kuta") },
                     modifier = Modifier.fillMaxWidth(),
-                    leadingIcon = { Icon(Icons.Default.Place, contentDescription = null) }
+                    enabled = !isUploading
                 )
-            }
-            item {
+                Spacer(modifier = Modifier.height(8.dp))
+
                 OutlinedTextField(
                     value = location,
                     onValueChange = { location = it },
                     label = { Text("Lokasi") },
-                    placeholder = { Text("Contoh: Bali") },
                     modifier = Modifier.fillMaxWidth(),
-                    leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null) }
+                    enabled = !isUploading
                 )
-            }
-            item {
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = price,
+                    onValueChange = { price = it },
+                    label = { Text("Harga (Angka)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isUploading
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
                     label = { Text("Deskripsi") },
-                    placeholder = { Text("Jelaskan tentang destinasi ini...") },
                     modifier = Modifier.fillMaxWidth(),
-                    minLines = 4,
-                    maxLines = 6
+                    minLines = 3,
+                    enabled = !isUploading
                 )
-            }
-            item {
-                OutlinedTextField(
-                    value = price,
-                    onValueChange = {
-                        if (it.isEmpty() || it.all { char -> char.isDigit() }) {
-                            price = it
-                        }
-                    },
-                    label = { Text("Harga (Rp)") },
-                    placeholder = { Text("50000") },
-                    modifier = Modifier.fillMaxWidth(),
-                    leadingIcon = { Icon(Icons.Default.ShoppingCart, contentDescription = null) }
-                )
-            }
-            item {
-                OutlinedTextField(
-                    value = imageUrl,
-                    onValueChange = { imageUrl = it },
-                    label = { Text("URL Gambar (opsional)") },
-                    placeholder = { Text("https://...") },
-                    modifier = Modifier.fillMaxWidth(),
-                    leadingIcon = { Icon(Icons.Default.Star, contentDescription = null) }
-                )
-                Text(
-                    text = "* Nanti akan diintegrasikan dengan Supabase Storage untuk upload gambar",
-                    fontSize = 12.sp,
-                    color = Color.Gray,
-                    modifier = Modifier.padding(start = 16.dp, top = 4.dp)
-                )
-            }
-            item {
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-            item {
+
+                Spacer(modifier = Modifier.height(24.dp))
                 Button(
                     onClick = {
-                        if (title.isNotEmpty() && location.isNotEmpty() &&
-                            description.isNotEmpty() && price.isNotEmpty()) {
-                            val newDestination = Destination(
-                                title = title,
-                                location = location,
-                                description = description,
-                                price = price.toDoubleOrNull() ?: 0.0,
-                                imageUrl = imageUrl.ifEmpty { "placeholder" }
-                            )
-                            onSaveDestination(newDestination)
+                        if (name.isNotEmpty() && price.isNotEmpty() && selectedImageUri != null) {
+                            viewModel.uploadImageAndSaveDestination(context, selectedImageUri!!, name, location, price, description) {
+                                Toast.makeText(context, "Berhasil!", Toast.LENGTH_SHORT).show()
+                                navController.popBackStack()
+                            }
+                        } else {
+                            Toast.makeText(context, "Lengkapi semua data!", Toast.LENGTH_SHORT).show()
                         }
                     },
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    enabled = !isUploading
+                ) {
+                    Text(if (isUploading) "Menyimpan..." else "Simpan")
+                }
+            }
+            if (isUploading) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            }
+        }
+    }
+}
+
+// --- 5. LAYAR DETAIL DESTINATION ---
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DestinationDetailScreen(navController: NavController, destination: Destinations) {
+    Scaffold(
+        bottomBar = {
+            Button(
+                onClick = {
+                    navController.navigate("edit_destination/${destination.id}")
+                },
+                modifier = Modifier.fillMaxWidth().padding(16.dp).height(50.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Edit Data Destinasi")
+            }
+        }
+    ) { paddingValues ->
+        Column(modifier = Modifier.padding(paddingValues).verticalScroll(rememberScrollState())) {
+            Box {
+                AsyncImage(
+                    model = destination.image_url,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxWidth().height(300.dp),
+                    contentScale = ContentScale.Crop
+                )
+                IconButton(
+                    onClick = { navController.popBackStack() },
+                    modifier = Modifier.padding(16.dp).align(Alignment.TopStart)
+                ) {
+                    Surface(shape = RoundedCornerShape(50), color = Color.White.copy(alpha = 0.7f)) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", modifier = Modifier.padding(8.dp))
+                    }
+                }
+            }
+            Column(modifier = Modifier.padding(24.dp)) {
+                Text(destination.name, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(destination.location, style = MaterialTheme.typography.bodyLarge)
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(destination.price, style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(24.dp))
+                Text(destination.description, style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+    }
+}
+
+// --- 6. LAYAR EDIT DESTINATION ---
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EditDestinationScreen(navController: NavController, viewModel: DestinationViewModel, destinationId: String) {
+    val destinationToEdit = viewModel.getDestinationById(destinationId)
+
+    var name by remember { mutableStateOf(destinationToEdit?.name ?: "") }
+    var location by remember { mutableStateOf(destinationToEdit?.location ?: "") }
+    var price by remember { mutableStateOf(destinationToEdit?.price?.replace("Rp ", "") ?: "") }
+    var description by remember { mutableStateOf(destinationToEdit?.description ?: "") }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    val currentImageUrl = destinationToEdit?.image_url ?: ""
+
+    val isUploading = viewModel.isUploading
+    val context = LocalContext.current
+
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+        onResult = { uri -> selectedImageUri = uri }
+    )
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Edit Destinasi") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.Default.ArrowBack, "Back")
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .padding(paddingValues)
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp),
-                    enabled = title.isNotEmpty() && location.isNotEmpty() &&
-                            description.isNotEmpty() && price.isNotEmpty(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF2196F3)
-                    )
+                        .height(200.dp)
+                        .border(1.dp, Color.Gray, RoundedCornerShape(12.dp))
+                        .clickable(enabled = !isUploading) {
+                            photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                        },
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.Check, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Simpan Destinasi", fontSize = 16.sp)
+                    if (selectedImageUri != null) {
+                        AsyncImage(
+                            model = selectedImageUri,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        AsyncImage(
+                            model = currentImageUrl,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                    Surface(
+                        modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
+                        color = Color.Black.copy(alpha = 0.5f)
+                    ) {
+                        Text(
+                            "Ketuk untuk ganti foto",
+                            color = Color.White,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            modifier = Modifier.padding(8.dp)
+                        )
+                    }
                 }
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Nama") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = location,
+                    onValueChange = { location = it },
+                    label = { Text("Lokasi") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = price,
+                    onValueChange = { price = it },
+                    label = { Text("Harga") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Deskripsi") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+                Button(
+                    onClick = {
+                        if (name.isNotEmpty() && price.isNotEmpty() && destinationToEdit != null) {
+                            viewModel.updateDestination(
+                                context,
+                                destinationToEdit.id,
+                                selectedImageUri,
+                                currentImageUrl,
+                                name,
+                                location,
+                                if (price.startsWith("Rp")) price else "Rp $price",
+                                description
+                            ) {
+                                Toast.makeText(context, "Updated!", Toast.LENGTH_SHORT).show()
+                                navController.popBackStack()
+                                navController.popBackStack()
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    enabled = !isUploading
+                ) {
+                    Text(if (isUploading) "Updating..." else "Update")
+                }
+            }
+            if (isUploading) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             }
         }
     }

@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import com.example.splashandregist.ui.navigation.NavGraph
 import com.example.splashandregist.ui.screens.HotelApp
 import com.example.splashandregist.ui.screens.PromoApp
+import com.example.splashandregist.ui.screens.DestinationApp
 import com.example.splashandregist.ui.theme.MyAppTheme
 
 class MainActivity : ComponentActivity() {
@@ -17,7 +18,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme() {
-                PromoApp()
+              HotelApp()
             }
 //            MyAppTheme {
 //                Surface(

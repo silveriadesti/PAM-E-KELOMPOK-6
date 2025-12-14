@@ -140,7 +140,4 @@ class EventViewModel : ViewModel() {
             }
         }
     }
-
-
-    // TODO: Tambahkan fungsi updateEvent jika Anda memerlukan fungsi Edit Event
 }

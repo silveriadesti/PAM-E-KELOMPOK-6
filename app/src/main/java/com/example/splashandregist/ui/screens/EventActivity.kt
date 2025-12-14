@@ -226,7 +226,6 @@ fun AddEventScreen(navController: NavController, viewModel: EventViewModel) {
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { imageUri = it }
 
 
-    // TODO: Ganti dengan logika untuk mendapatkan ID pengguna aktual
     // Misalnya dari Supabase Auth Session
     val currentUserId: String? = null
     Scaffold(

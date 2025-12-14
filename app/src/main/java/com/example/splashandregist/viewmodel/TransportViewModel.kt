@@ -2,58 +2,161 @@ package com.example.splashandregist.viewmodel
 
 import androidx.compose.runtime.mutableStateListOf
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.splashandregist.data.SupabaseClient
+import io.github.jan.supabase.postgrest.from
+import kotlinx.coroutines.launch
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import android.content.Context
+import android.net.Uri
+import io.github.jan.supabase.storage.storage
+import java.util.UUID
 
+@Serializable
 data class Transport(
-    val id: String,
+    val id: String? = null, // 🔥 WAJIB NULLABLE
     val name: String,
     val type: String,
     val route: String,
     val capacity: Int,
     val price: String,
+    @SerialName("image_url")
     val imageUrl: String,
     val description: String
 )
 
+
 class TransportViewModel : ViewModel() {
 
-    private val _list = mutableStateListOf(
-        Transport(
-            id = "1",
-            name = "Bus Trans Jawa",
-            type = "Bus",
-            route = "Surabaya - Jakarta",
-            capacity = 40,
-            price = "Rp 350.000",
-            imageUrl = "https://asset.kompas.com/crops/iUxhFS5brWKrCA23PJPVQfLoCdw=/0x0:0x0/750x500/data/photo/2023/04/13/6437c7965f630.jpg",
-            description = "Bus Eksekutif dengan fasilitas AC, reclining seat, dan toilet."
-        ),
-        Transport(
-            id = "2",
-            name = "Kereta Api Argo Bromo",
-            type = "Kereta",
-            route = "Malang - Jakarta",
-            capacity = 100,
-            price = "Rp 580.000",
-            imageUrl = "https://asset.kompas.com/crops/v823UeJ8V4aHcRUW2KIiMzFxLbc=/0x0:0x0/750x500/data/photo/2023/06/20/64912b40a8fb7.jpg",
-            description = "Kereta kelas eksekutif dengan jadwal cepat dan nyaman."
-        )
-    )
+    private val _list = mutableStateListOf<Transport>()
+    val transports: List<Transport> = _list
 
-    val transports: List<Transport> get() = _list
+    // ================= UPLOAD IMAGE =================
+    fun uploadImage(
+        context: Context,
+        imageUri: Uri,
+        onSuccess: (String) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                val fileName = "transport_${UUID.randomUUID()}.jpg"
 
-    fun addTransport(t: Transport) {
-        _list.add(t)
+                val inputStream = context.contentResolver.openInputStream(imageUri)
+                    ?: throw Exception("File tidak ditemukan")
+
+                SupabaseClient.client
+                    .storage
+                    .from("transport-images")
+                    .upload(
+                        path = fileName,
+                        data = inputStream.readBytes()
+                    ) {
+                        upsert = true
+                    }
+
+                val publicUrl = SupabaseClient.client
+                    .storage
+                    .from("transport-images")
+                    .publicUrl(fileName)
+
+                onSuccess(publicUrl)
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+                onError(e.message ?: "Upload gagal")
+            }
+        }
     }
 
-    fun getTransportById(id: String) =
-        _list.find { it.id == id }
+    /* ================= READ ================= */
+    fun fetchTransports() {
+        viewModelScope.launch {
+            try {
+                val result = SupabaseClient.client
+                    .from("transports")
+                    .select()
+                    .decodeList<Transport>()
 
-    fun updateTransport(updated: Transport) {
-        val index = _list.indexOfFirst { it.id == updated.id }
-        if (index != -1) _list[index] = updated
+                _list.clear()
+                _list.addAll(result)
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
 
-    fun deleteTransport(id: String) {
-        _list.removeAll { it.id == id }
+    fun getTransportById(id: String): Transport? {
+        return _list.find { it.id == id }
+    }
+
+    /* ================= CREATE ================= */
+    fun addTransport(
+        t: Transport,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                SupabaseClient.client
+                    .from("transports")
+                    .insert(t)
+
+                fetchTransports()
+                onSuccess()
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+                onError(e.message ?: "Insert gagal")
+            }
+        }
+    }
+
+    /* ================= UPDATE ================= */
+    fun updateTransport(updated: Transport, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            try {
+                SupabaseClient.client
+                    .from("transports")
+                    .update({
+                        set("name", updated.name)
+                        set("type", updated.type)
+                        set("route", updated.route)
+                        set("capacity", updated.capacity)
+                        set("price", updated.price)
+                        set("image_url", updated.imageUrl)
+                        set("description", updated.description)
+                    }) {
+                        filter { eq("id", updated.id!!) }
+                    }
+
+                fetchTransports()
+                onSuccess()
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    /* ================= DELETE ================= */
+    fun deleteTransport(id: String, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            try {
+                SupabaseClient.client
+                    .from("transports")
+                    .delete {
+                        filter { eq("id", id) }
+                    }
+
+                fetchTransports()
+                onSuccess()
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
 }

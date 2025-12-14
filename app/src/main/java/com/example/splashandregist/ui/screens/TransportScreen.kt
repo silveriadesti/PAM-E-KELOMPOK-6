@@ -3,19 +3,19 @@ package com.example.splashandregist.ui.screens
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,23 +24,21 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
-import androidx.core.view.WindowCompat
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import android.net.Uri
-import androidx.activity.result.PickVisualMediaRequest
 import com.example.splashandregist.viewmodel.Transport
 import com.example.splashandregist.viewmodel.TransportViewModel
 
-// --- 1. ACTIVITY OPSIONAL JIKA MAU DIPISAH ---
+/* ================= ACTIVITY ================= */
 class TransportActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,11 +52,40 @@ class TransportActivity : ComponentActivity() {
     }
 }
 
-// --- 4. ROOT SCREEN DENGAN NAV ---
+/* ================= TOP BAR REUSABLE ================= */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TransportTopBar(
+    title: String,
+    navController: NavController
+) {
+    TopAppBar(
+        title = { Text(title) },
+        navigationIcon = {
+            IconButton(onClick = { navController.popBackStack() }) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = "Back"
+                )
+            }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = Color(0xFF2196F3),
+            titleContentColor = Color.White,
+            navigationIconContentColor = Color.White
+        )
+    )
+}
+
+/* ================= ROOT ================= */
 @Composable
 fun TransportScreen() {
     val navController = rememberNavController()
-    val viewModel = remember { TransportViewModel() }
+    val viewModel: TransportViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+
+    LaunchedEffect(Unit) {
+        viewModel.fetchTransports()
+    }
 
     NavHost(navController = navController, startDestination = "transport_list") {
 
@@ -71,25 +98,22 @@ fun TransportScreen() {
         }
 
         composable("transport_detail/{id}") { backStack ->
-            val id = backStack.arguments?.getString("id")
-            val transport = viewModel.getTransportById(id ?: "")
-            if (transport != null) {
-                TransportDetailScreen(navController, viewModel, transport)
+            val id = backStack.arguments?.getString("id") ?: return@composable
+            viewModel.getTransportById(id)?.let {
+                TransportDetailScreen(navController, viewModel, it)
             }
         }
 
         composable("edit_transport/{id}") { backStack ->
-            val id = backStack.arguments?.getString("id")
-            val transport = viewModel.getTransportById(id ?: "")
-            if (transport != null) {
-                EditTransportScreen(navController, viewModel, transport)
+            val id = backStack.arguments?.getString("id") ?: return@composable
+            viewModel.getTransportById(id)?.let {
+                EditTransportScreen(navController, viewModel, it)
             }
         }
-
     }
 }
 
-// --- 5. LIST SCREEN ---
+/* ================= LIST ================= */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TransportListScreen(navController: NavController, viewModel: TransportViewModel) {
@@ -108,14 +132,14 @@ fun TransportListScreen(navController: NavController, viewModel: TransportViewMo
                 onClick = { navController.navigate("add_transport") },
                 containerColor = Color(0xFF2196F3)
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Tambah Transport", tint = Color.White)
+                Icon(Icons.Default.Add, contentDescription = null, tint = Color.White)
             }
         }
     ) { padding ->
         LazyColumn(
+            modifier = Modifier.padding(padding),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.padding(padding)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(viewModel.transports) { t ->
                 TransportItem(t) {
@@ -129,9 +153,10 @@ fun TransportListScreen(navController: NavController, viewModel: TransportViewMo
 @Composable
 fun TransportItem(t: Transport, onClick: () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth().clickable { onClick() },
-        elevation = CardDefaults.cardElevation(4.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column {
             AsyncImage(
@@ -142,36 +167,17 @@ fun TransportItem(t: Transport, onClick: () -> Unit) {
                     .height(160.dp),
                 contentScale = ContentScale.Crop
             )
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(t.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Column(Modifier.padding(16.dp)) {
+                Text(t.name, fontWeight = FontWeight.Bold)
                 Text(t.type, color = Color.Gray)
-                Spacer(modifier = Modifier.height(2.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.LocationOn,
-                        contentDescription = null,
-                        tint = Color.Gray,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(t.route, color = Color.Gray)
-                }
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = "Kapasitas: ${t.capacity} penumpang",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(t.price, style = MaterialTheme.typography.titleMedium, color = Color(0xFF2196F3))
+                Text("Kapasitas: ${t.capacity}")
+                Text(t.price, color = Color(0xFF2196F3))
             }
         }
     }
 }
 
-// --- 6. ADD SCREEN ---
+/* ================= ADD ================= */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddTransportScreen(navController: NavController, viewModel: TransportViewModel) {
@@ -181,32 +187,18 @@ fun AddTransportScreen(navController: NavController, viewModel: TransportViewMod
     var route by remember { mutableStateOf("") }
     var capacity by remember { mutableStateOf("") }
     var price by remember { mutableStateOf("") }
-    var imageUri by remember { mutableStateOf<Uri?>(null) }
     var description by remember { mutableStateOf("") }
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
 
     val context = LocalContext.current
 
-    val launcher =
-        rememberLauncherForActivityResult(
-            ActivityResultContracts.PickVisualMedia()
-        ) { uri ->
-            imageUri = uri
-        }
+    val launcher = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia()
+    ) { uri -> imageUri = uri }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Tambah Transport") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF2196F3),
-                    titleContentColor = Color.White
-                ),
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
-                    }
-                }
-            )
+            TransportTopBar("Tambah Transport", navController)
         }
     ) { padding ->
         Column(
@@ -215,129 +207,135 @@ fun AddTransportScreen(navController: NavController, viewModel: TransportViewMod
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-            OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nama Transport") }, modifier = Modifier.fillMaxWidth())
-            Spacer(Modifier.height(8.dp))
 
-            OutlinedTextField(value = type, onValueChange = { type = it }, label = { Text("Jenis (Bus / Kereta / Pesawat)") }, modifier = Modifier.fillMaxWidth())
-            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(name, { name = it }, label = { Text("Nama") })
+            OutlinedTextField(type, { type = it }, label = { Text("Jenis") })
+            OutlinedTextField(route, { route = it }, label = { Text("Rute") })
+            OutlinedTextField(
+                capacity, { capacity = it },
+                label = { Text("Kapasitas") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            )
+            OutlinedTextField(price, { price = it }, label = { Text("Harga") })
 
-            OutlinedTextField(value = route, onValueChange = { route = it }, label = { Text("Rute") }, modifier = Modifier.fillMaxWidth())
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(12.dp))
 
             OutlinedTextField(
-                value = capacity,
-                onValueChange = { capacity = it },
-                label = { Text("Kapasitas Penumpang") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth()
+                value = description,
+                onValueChange = { description = it },
+                label = { Text("Deskripsi") },
+                minLines = 3
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(Modifier.height(12.dp))
 
-
-            OutlinedTextField(
-                value = price, onValueChange = { price = it },
-                label = { Text("Harga") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(Modifier.height(8.dp))
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(180.dp)
-                    .clickable {
-                        launcher.launch(
-                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                        )
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                if (imageUri == null) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Default.Add, contentDescription = null, tint = Color.Gray)
-                        Text("Pilih Gambar Transport", color = Color.Gray)
-                    }
-                } else {
-                    AsyncImage(
-                        model = imageUri,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                }
+            Button(onClick = {
+                launcher.launch(
+                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                )
+            }) {
+                Text("Pilih Gambar")
             }
 
-            OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Deskripsi") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(16.dp))
 
             Button(
+                modifier = Modifier.fillMaxWidth(),
                 onClick = {
-                    if (name.isNotEmpty()) {
-                        val newTransport = Transport(
-                            id = System.currentTimeMillis().toString(),
-                            name = name,
-                            type = type,
-                            route = route,
-                            capacity = capacity.toIntOrNull() ?: 0,
-                            price = "Rp $price",
-                            imageUrl = imageUri.toString(),
-                            description = description
-                        )
-                        viewModel.addTransport(newTransport)
-                        Toast.makeText(context, "Transport Ditambahkan!", Toast.LENGTH_SHORT).show()
-                        navController.popBackStack()
+
+                    if (imageUri == null) {
+                        Toast.makeText(context, "Pilih gambar dulu", Toast.LENGTH_SHORT).show()
+                        return@Button
                     }
-                },
-                modifier = Modifier.fillMaxWidth().height(50.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3))
+
+                    // 🔥 1. UPLOAD GAMBAR KE SUPABASE
+                    viewModel.uploadImage(
+                        context = context,
+                        imageUri = imageUri!!,
+                        onSuccess = { imageUrl ->
+
+                            // 🔥 2. BARU SIMPAN KE DATABASE
+                            val newTransport = Transport(
+                                name = name,
+                                type = type,
+                                route = route,
+                                capacity = capacity.toIntOrNull() ?: 0,
+                                price = "Rp $price",
+                                imageUrl = imageUrl,
+                                description = description
+                            )
+
+
+                            viewModel.addTransport(
+                                newTransport,
+                                onSuccess = {
+                                    Toast.makeText(
+                                        context,
+                                        "Transport Ditambahkan",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                    navController.popBackStack()
+                                },
+                                onError = { error ->
+                                    Toast.makeText(
+                                        context,
+                                        error,
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                            )
+
+                        },
+                        onError = { error ->
+                            Toast.makeText(
+                                context,
+                                "Upload gagal: $error",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    )
+                }
             ) {
-                Text("Simpan Transport")
+                Text("Simpan")
             }
         }
     }
 }
 
-// --- 7. EDIT TRANSPORT SCREEN ---
+/* ================= EDIT ================= */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EditTransportScreen(navController: NavController, viewModel: TransportViewModel, t: Transport) {
+fun EditTransportScreen(
+    navController: NavController,
+    viewModel: TransportViewModel,
+    t: Transport
+) {
+    val context = LocalContext.current
 
     var name by remember { mutableStateOf(t.name) }
     var type by remember { mutableStateOf(t.type) }
     var route by remember { mutableStateOf(t.route) }
     var capacity by remember { mutableStateOf(t.capacity.toString()) }
     var price by remember { mutableStateOf(t.price.replace("Rp ", "")) }
-    var imageUri by remember { mutableStateOf<Uri?>(Uri.parse(t.imageUrl)) }
     var description by remember { mutableStateOf(t.description) }
+    var imageUri by remember { mutableStateOf<Uri?>(Uri.parse(t.imageUrl)) }
+    var isImageChanged by remember { mutableStateOf(false) }
 
-    val context = LocalContext.current
-
-    val launcher =
-        rememberLauncherForActivityResult(
-            ActivityResultContracts.PickVisualMedia()
-        ) { uri ->
+    val launcher = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) {
             imageUri = uri
+            isImageChanged = true
         }
+    }
+
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Edit Transport") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF2196F3),
-                    titleContentColor = Color.White
-                ),
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
-                    }
-                }
-            )
+            TransportTopBar("Edit Transport", navController)
         }
     ) { padding ->
-
         Column(
             modifier = Modifier
                 .padding(padding)
@@ -345,83 +343,100 @@ fun EditTransportScreen(navController: NavController, viewModel: TransportViewMo
                 .verticalScroll(rememberScrollState())
         ) {
 
-            OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nama Transport") }, modifier = Modifier.fillMaxWidth())
-            Spacer(Modifier.height(8.dp))
-
-            OutlinedTextField(value = type, onValueChange = { type = it }, label = { Text("Jenis (Bus/Kereta/Pesawat)") }, modifier = Modifier.fillMaxWidth())
-            Spacer(Modifier.height(8.dp))
-
-            OutlinedTextField(value = route, onValueChange = { route = it }, label = { Text("Rute") }, modifier = Modifier.fillMaxWidth())
-            Spacer(Modifier.height(8.dp))
-
-            OutlinedTextField(
-                value = capacity,
-                onValueChange = { capacity = it },
-                label = { Text("Kapasitas") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth()
+            // 🔹 PREVIEW GAMBAR
+            AsyncImage(
+                model = imageUri,
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(180.dp),
+                contentScale = ContentScale.Crop
             )
 
-            OutlinedTextField(
-                value = price,
-                onValueChange = { price = it },
-                label = { Text("Harga") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth()
-            )
             Spacer(Modifier.height(8.dp))
 
-            Button(
-                onClick = {
-                    launcher.launch(
-                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                    )
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Ganti Gambar Transport")
+            Button(onClick = {
+                launcher.launch(
+                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                )
+            }) {
+                Text("Ganti Gambar")
             }
+
+            Spacer(Modifier.height(16.dp))
+
+            OutlinedTextField(name, { name = it }, label = { Text("Nama") })
+            OutlinedTextField(type, { type = it }, label = { Text("Jenis") })
+            OutlinedTextField(route, { route = it }, label = { Text("Rute") })
+
+            OutlinedTextField(
+                capacity,
+                { capacity = it },
+                label = { Text("Kapasitas") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            )
+
+            OutlinedTextField(price, { price = it }, label = { Text("Harga") })
 
             Spacer(Modifier.height(12.dp))
-
-            imageUri?.let {
-                AsyncImage(
-                    model = it,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(180.dp),
-                    contentScale = ContentScale.Crop
-                )
-            }
 
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
                 label = { Text("Deskripsi") },
-                modifier = Modifier.fillMaxWidth(),
                 minLines = 3
             )
-            Spacer(Modifier.height(24.dp))
+
+            Spacer(Modifier.height(16.dp))
 
             Button(
+                modifier = Modifier.fillMaxWidth(),
                 onClick = {
-                    val updated = Transport(
-                        id = t.id,
-                        name = name,
-                        type = type,
-                        route = route,
-                        capacity = capacity.toIntOrNull() ?: t.capacity,
-                        price = "Rp $price",
-                        imageUrl = imageUri.toString(),
-                        description = description
-                    )
-                    viewModel.updateTransport(updated)
-                    Toast.makeText(context, "Transport Berhasil Diedit!", Toast.LENGTH_SHORT).show()
-                    navController.popBackStack()
-                },
-                modifier = Modifier.fillMaxWidth().height(50.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3))
+
+                    if (isImageChanged && imageUri != null) {
+
+                        viewModel.uploadImage(
+                            context = context,
+                            imageUri = imageUri!!,
+                            onSuccess = { imageUrl ->
+
+                                val updated = t.copy(
+                                    name = name,
+                                    type = type,
+                                    route = route,
+                                    capacity = capacity.toIntOrNull() ?: t.capacity,
+                                    price = "Rp $price",
+                                    imageUrl = imageUrl,
+                                    description = description
+                                )
+
+                                viewModel.updateTransport(updated) {
+                                    Toast.makeText(context, "Berhasil Update", Toast.LENGTH_SHORT).show()
+                                    navController.popBackStack()
+                                }
+                            },
+                            onError = {
+                                Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+                            }
+                        )
+
+                    } else {
+
+                        val updated = t.copy(
+                            name = name,
+                            type = type,
+                            route = route,
+                            capacity = capacity.toIntOrNull() ?: t.capacity,
+                            price = "Rp $price",
+                            description = description
+                        )
+
+                        viewModel.updateTransport(updated) {
+                            Toast.makeText(context, "Berhasil Update", Toast.LENGTH_SHORT).show()
+                            navController.popBackStack()
+                        }
+                    }
+                }
             ) {
                 Text("Simpan Perubahan")
             }
@@ -429,49 +444,21 @@ fun EditTransportScreen(navController: NavController, viewModel: TransportViewMo
     }
 }
 
-// --- 8. DETAIL SCREEN ---
+
+/* ================= DETAIL ================= */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TransportDetailScreen(navController: NavController, viewModel: TransportViewModel, t: Transport) {
-
+fun TransportDetailScreen(
+    navController: NavController,
+    viewModel: TransportViewModel,
+    t: Transport
+) {
     val context = LocalContext.current
 
     Scaffold(
-        bottomBar = {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-                    .navigationBarsPadding(), // 🔥 INI KUNCI NYA
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-
-            // Edit
-                Button(
-                    onClick = { navController.navigate("edit_transport/${t.id}") },
-                    modifier = Modifier.weight(1f).height(50.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3))
-                ) {
-                    Text("Edit")
-                }
-
-                // Delete
-                Button(
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-                    onClick = {
-                        viewModel.deleteTransport(t.id)
-                        Toast.makeText(context, "Data berhasil dihapus!", Toast.LENGTH_SHORT).show()
-                        navController.popBackStack()
-                    },
-                    modifier = Modifier.weight(1f).height(50.dp),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text("Hapus", color = Color.White)
-                }
-            }
+        topBar = {
+            TransportTopBar("Detail Transport", navController)
         }
-
     ) { padding ->
 
         Column(
@@ -480,62 +467,45 @@ fun TransportDetailScreen(navController: NavController, viewModel: TransportView
                 .verticalScroll(rememberScrollState())
         ) {
 
-            Box {
-                AsyncImage(
-                    model = t.imageUrl,
-                    contentDescription = t.name,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(260.dp),
-                    contentScale = ContentScale.Crop
-                )
+            AsyncImage(
+                model = t.imageUrl,
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(240.dp),
+                contentScale = ContentScale.Crop
+            )
 
-                IconButton(
-                    onClick = { navController.popBackStack() },
-                    modifier = Modifier.padding(16.dp).align(Alignment.TopStart)
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(50),
-                        color = Color.White.copy(alpha = 0.7f)
-                    ) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", modifier = Modifier.padding(8.dp))
-                    }
-                }
-            }
+            Column(Modifier.padding(16.dp)) {
+                Text(t.name, fontWeight = FontWeight.Bold)
+                Text(t.route)
+                Text(t.price)
 
-            Column(modifier = Modifier.padding(24.dp)) {
-                Text(t.name, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(4.dp))
-
-                Text(t.type, color = Color.Gray)
-                Spacer(Modifier.height(12.dp))
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    Spacer(Modifier.width(4.dp))
-                    Text(t.route)
-                }
+                Spacer(Modifier.height(8.dp))
+                Text(t.description, fontSize = 14.sp, color = Color.Gray)
 
                 Spacer(Modifier.height(16.dp))
-                Text(
-                    "Kapasitas",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = Color.Gray
-                )
-                Text(
-                    "${t.capacity} penumpang",
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium
-                )
 
-                Spacer(Modifier.height(20.dp))
-                Text("Harga", style = MaterialTheme.typography.labelLarge, color = Color.Gray)
-                Text(t.price, style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
 
-                Spacer(Modifier.height(24.dp))
-                Text("Deskripsi", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(4.dp))
-                Text(t.description, lineHeight = 22.sp)
+                    Button(onClick = {
+                        navController.navigate("edit_transport/${t.id!!}")
+                    }) {
+                        Text("Edit")
+                    }
+
+                    Button(
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+                        onClick = {
+                            viewModel.deleteTransport(t.id!!) {
+                            Toast.makeText(context, "Data Dihapus", Toast.LENGTH_SHORT).show()
+                                navController.popBackStack()
+                            }
+                        }
+                    ) {
+                        Text("Hapus")
+                    }
+                }
             }
         }
     }

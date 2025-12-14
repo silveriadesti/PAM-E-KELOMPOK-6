@@ -55,6 +55,7 @@ data class Transport(
     val name: String,
     val type: String,
     val route: String,
+    val capacity: Int,
     val price: String,
     val imageUrl: String,
     val description: String
@@ -69,6 +70,7 @@ class TransportViewModel : ViewModel() {
             name = "Bus Trans Jawa",
             type = "Bus",
             route = "Surabaya - Jakarta",
+            capacity = 40,
             price = "Rp 350.000",
             imageUrl = "https://asset.kompas.com/crops/iUxhFS5brWKrCA23PJPVQfLoCdw=/0x0:0x0/750x500/data/photo/2023/04/13/6437c7965f630.jpg",
             description = "Bus Eksekutif dengan fasilitas AC, reclining seat, dan toilet."
@@ -78,6 +80,7 @@ class TransportViewModel : ViewModel() {
             name = "Kereta Api Argo Bromo",
             type = "Kereta",
             route = "Malang - Jakarta",
+            capacity = 100,
             price = "Rp 580.000",
             imageUrl = "https://asset.kompas.com/crops/v823UeJ8V4aHcRUW2KIiMzFxLbc=/0x0:0x0/750x500/data/photo/2023/06/20/64912b40a8fb7.jpg",
             description = "Kereta kelas eksekutif dengan jadwal cepat dan nyaman."
@@ -201,6 +204,11 @@ fun TransportItem(t: Transport, onClick: () -> Unit) {
                     Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(t.route, color = Color.Gray)
+                    Text(
+                        text = "Kapasitas: ${t.capacity} penumpang",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray
+                    )
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(t.price, style = MaterialTheme.typography.titleMedium, color = Color(0xFF2196F3))
@@ -217,6 +225,7 @@ fun AddTransportScreen(navController: NavController, viewModel: TransportViewMod
     var name by remember { mutableStateOf("") }
     var type by remember { mutableStateOf("") }
     var route by remember { mutableStateOf("") }
+    var capacity by remember { mutableStateOf("") }
     var price by remember { mutableStateOf("") }
     var imageUrl by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -255,6 +264,17 @@ fun AddTransportScreen(navController: NavController, viewModel: TransportViewMod
             Spacer(Modifier.height(8.dp))
 
             OutlinedTextField(
+                value = capacity,
+                onValueChange = { capacity = it },
+                label = { Text("Kapasitas Penumpang") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+
+            OutlinedTextField(
                 value = price, onValueChange = { price = it },
                 label = { Text("Harga") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -276,6 +296,7 @@ fun AddTransportScreen(navController: NavController, viewModel: TransportViewMod
                             name = name,
                             type = type,
                             route = route,
+                            capacity = capacity.toIntOrNull() ?: 0,
                             price = "Rp $price",
                             imageUrl = imageUrl,
                             description = description
@@ -302,6 +323,7 @@ fun EditTransportScreen(navController: NavController, viewModel: TransportViewMo
     var name by remember { mutableStateOf(t.name) }
     var type by remember { mutableStateOf(t.type) }
     var route by remember { mutableStateOf(t.route) }
+    var capacity by remember { mutableStateOf("") }
     var price by remember { mutableStateOf(t.price.replace("Rp ", "")) }
     var imageUrl by remember { mutableStateOf(t.imageUrl) }
     var description by remember { mutableStateOf(t.description) }
@@ -342,6 +364,14 @@ fun EditTransportScreen(navController: NavController, viewModel: TransportViewMo
             Spacer(Modifier.height(8.dp))
 
             OutlinedTextField(
+                value = capacity,
+                onValueChange = { capacity = it },
+                label = { Text("Kapasitas") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
                 value = price,
                 onValueChange = { price = it },
                 label = { Text("Harga") },
@@ -369,6 +399,7 @@ fun EditTransportScreen(navController: NavController, viewModel: TransportViewMo
                         name = name,
                         type = type,
                         route = route,
+                        capacity = capacity.toInt(),
                         price = "Rp $price",
                         imageUrl = imageUrl,
                         description = description
@@ -471,6 +502,18 @@ fun TransportDetailScreen(navController: NavController, viewModel: TransportView
                     Spacer(Modifier.width(4.dp))
                     Text(t.route)
                 }
+
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    "Kapasitas",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = Color.Gray
+                )
+                Text(
+                    "${t.capacity} penumpang",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium
+                )
 
                 Spacer(Modifier.height(20.dp))
                 Text("Harga", style = MaterialTheme.typography.labelLarge, color = Color.Gray)

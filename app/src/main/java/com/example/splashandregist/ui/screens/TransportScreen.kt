@@ -27,7 +27,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.ViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -38,6 +37,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import android.net.Uri
 import androidx.activity.result.PickVisualMediaRequest
+import com.example.splashandregist.viewmodel.Transport
+import com.example.splashandregist.viewmodel.TransportViewModel
 
 // --- 1. ACTIVITY OPSIONAL JIKA MAU DIPISAH ---
 class TransportActivity : ComponentActivity() {
@@ -51,65 +52,6 @@ class TransportActivity : ComponentActivity() {
             }
         }
     }
-}
-
-// --- 2. DATA MODEL ---
-data class Transport(
-    val id: String,
-    val name: String,
-    val type: String,
-    val route: String,
-    val capacity: Int,
-    val price: String,
-    val imageUrl: String,
-    val description: String
-)
-
-// --- 3. VIEWMODEL ---
-class TransportViewModel : ViewModel() {
-
-    private val _list = mutableStateListOf(
-        Transport(
-            id = "1",
-            name = "Bus Trans Jawa",
-            type = "Bus",
-            route = "Surabaya - Jakarta",
-            capacity = 40,
-            price = "Rp 350.000",
-            imageUrl = "https://asset.kompas.com/crops/iUxhFS5brWKrCA23PJPVQfLoCdw=/0x0:0x0/750x500/data/photo/2023/04/13/6437c7965f630.jpg",
-            description = "Bus Eksekutif dengan fasilitas AC, reclining seat, dan toilet."
-        ),
-        Transport(
-            id = "2",
-            name = "Kereta Api Argo Bromo",
-            type = "Kereta",
-            route = "Malang - Jakarta",
-            capacity = 100,
-            price = "Rp 580.000",
-            imageUrl = "https://asset.kompas.com/crops/v823UeJ8V4aHcRUW2KIiMzFxLbc=/0x0:0x0/750x500/data/photo/2023/06/20/64912b40a8fb7.jpg",
-            description = "Kereta kelas eksekutif dengan jadwal cepat dan nyaman."
-        ),
-    )
-
-    val transports: List<Transport> get() = _list
-
-    fun addTransport(t: Transport) {
-        _list.add(t)
-    }
-
-    fun getTransportById(id: String) = _list.find { it.id == id }
-
-    fun updateTransport(updated: Transport) {
-        val index = _list.indexOfFirst { it.id == updated.id }
-        if (index != -1) {
-            _list[index] = updated
-        }
-    }
-
-    fun deleteTransport(id: String) {
-        _list.removeAll { it.id == id }
-    }
-
 }
 
 // --- 4. ROOT SCREEN DENGAN NAV ---
@@ -365,7 +307,7 @@ fun EditTransportScreen(navController: NavController, viewModel: TransportViewMo
     var name by remember { mutableStateOf(t.name) }
     var type by remember { mutableStateOf(t.type) }
     var route by remember { mutableStateOf(t.route) }
-    var capacity by remember { mutableStateOf("") }
+    var capacity by remember { mutableStateOf(t.capacity.toString()) }
     var price by remember { mutableStateOf(t.price.replace("Rp ", "")) }
     var imageUri by remember { mutableStateOf<Uri?>(Uri.parse(t.imageUrl)) }
     var description by remember { mutableStateOf(t.description) }
@@ -469,7 +411,7 @@ fun EditTransportScreen(navController: NavController, viewModel: TransportViewMo
                         name = name,
                         type = type,
                         route = route,
-                        capacity = capacity.toInt(),
+                        capacity = capacity.toIntOrNull() ?: t.capacity,
                         price = "Rp $price",
                         imageUrl = imageUri.toString(),
                         description = description

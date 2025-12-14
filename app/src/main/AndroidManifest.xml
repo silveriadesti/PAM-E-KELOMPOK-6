@@ -15,8 +15,25 @@
         android:theme="@style/Theme.SplashAndRegist"
         tools:targetApi="31">
 
+        <!-- HAPUS intent-filter dari LoginActivity -->
         <activity
             android:name=".ui.screens.LoginActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Material3.DayNight.NoActionBar" />
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.screens.HotelActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Material3.DayNight.NoActionBar" />
+
+        <!-- JADIKAN TRANSPORT ACTIVITY SEBAGAI LAUNCHER -->
+        <activity
+            android:name=".ui.screens.TransportActivity"
+            android:exported="true"
             android:exported="false"
             android:theme="@style/Theme.Material3.DayNight.NoActionBar">
         </activity>
@@ -28,6 +45,12 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
         </activity>
 
         <activity

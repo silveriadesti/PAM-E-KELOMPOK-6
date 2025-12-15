@@ -25,7 +25,7 @@ data class Destinations(
     val price: String = "",
     val description: String = "",
     val image_url: String = "",
-    val user_id: String = ""
+    val user_id: String? = null  // ← UBAH: Sekarang nullable (boleh null)
 )
 
 class DestinationViewModel {
@@ -77,7 +77,8 @@ class DestinationViewModel {
         isUploading = true
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val userId = SupabaseClient.client.auth.currentUserOrNull()?.id ?: ""
+                // Coba ambil user ID, kalau tidak ada set null
+                val userId = SupabaseClient.client.auth.currentUserOrNull()?.id
 
                 // Upload image
                 val fileName = "${UUID.randomUUID()}.jpg"
@@ -86,6 +87,9 @@ class DestinationViewModel {
                 inputStream?.close()
 
                 if (bytes != null) {
+                    // Log: Mulai upload
+                    android.util.Log.d("DestinationVM", "Uploading image: $fileName")
+
                     SupabaseClient.client.storage
                         .from("destination-images")
                         .upload(fileName, bytes)
@@ -93,6 +97,9 @@ class DestinationViewModel {
                     val imageUrl = SupabaseClient.client.storage
                         .from("destination-images")
                         .publicUrl(fileName)
+
+                    // Log: Image uploaded
+                    android.util.Log.d("DestinationVM", "Image URL: $imageUrl")
 
                     // Save to database
                     val newDestination = Destinations(
@@ -105,19 +112,34 @@ class DestinationViewModel {
                         user_id = userId
                     )
 
+                    // Log: Saving to database
+                    android.util.Log.d("DestinationVM", "Saving destination: ${newDestination.name}")
+
                     SupabaseClient.client
                         .from("destinations")
                         .insert(newDestination)
+
+                    // Log: Success
+                    android.util.Log.d("DestinationVM", "Destination saved successfully!")
 
                     withContext(Dispatchers.Main) {
                         getDestinations()
                         isUploading = false
                         onSuccess()
                     }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        errorMessage = "Gagal membaca file gambar"
+                        isUploading = false
+                    }
                 }
             } catch (e: Exception) {
+                // Log error detail
+                android.util.Log.e("DestinationVM", "Error: ${e.message}", e)
+                e.printStackTrace()
+
                 withContext(Dispatchers.Main) {
-                    errorMessage = e.message
+                    errorMessage = "Error: ${e.message}"
                     isUploading = false
                 }
             }
@@ -159,6 +181,9 @@ class DestinationViewModel {
                     }
                 }
 
+                // Coba ambil user ID, kalau tidak ada set null
+                val userId = SupabaseClient.client.auth.currentUserOrNull()?.id
+
                 // Update database
                 val updatedDestination = Destinations(
                     id = destinationId,
@@ -167,7 +192,7 @@ class DestinationViewModel {
                     price = if (price.startsWith("Rp")) price else "Rp $price",
                     description = description,
                     image_url = finalImageUrl,
-                    user_id = SupabaseClient.client.auth.currentUserOrNull()?.id ?: ""
+                    user_id = userId  // ← Bisa null sekarang
                 )
 
                 SupabaseClient.client

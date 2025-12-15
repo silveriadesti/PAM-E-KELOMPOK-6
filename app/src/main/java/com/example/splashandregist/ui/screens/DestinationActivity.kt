@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -177,13 +178,20 @@ fun AddDestinationScreen(navController: NavController, viewModel: DestinationVie
         onResult = { uri -> selectedImageUri = uri }
     )
 
+    // Tampilkan error jika ada
+    LaunchedEffect(viewModel.errorMessage) {
+        viewModel.errorMessage?.let { error ->
+            Toast.makeText(context, "Error: $error", Toast.LENGTH_LONG).show()
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Tambah Destinasi Baru") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }, enabled = !isUploading) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
@@ -309,7 +317,7 @@ fun DestinationDetailScreen(navController: NavController, destination: Destinati
                     modifier = Modifier.padding(16.dp).align(Alignment.TopStart)
                 ) {
                     Surface(shape = RoundedCornerShape(50), color = Color.White.copy(alpha = 0.7f)) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", modifier = Modifier.padding(8.dp))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", modifier = Modifier.padding(8.dp))
                     }
                 }
             }
@@ -353,7 +361,7 @@ fun EditDestinationScreen(navController: NavController, viewModel: DestinationVi
                 title = { Text("Edit Destinasi") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                     }
                 }
             )

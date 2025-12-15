@@ -1,3 +1,9 @@
+package com.example.splashandregist.data.remote
+
+import io.github.jan.supabase.auth.Auth
+import io.github.jan.supabase.createSupabaseClient
+import io.github.jan.supabase.postgrest.Postgrest
+import io.github.jan.supabase.storage.Storage
 
 // Gunakan 'object' agar dia jadi Singleton (Cuma ada 1 koneksi untuk seluruh aplikasi)
 object SupabaseClient {

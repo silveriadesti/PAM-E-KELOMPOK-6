@@ -1,66 +1,47 @@
-package com.example.splashandregist.viewmodel
+package com.example.splashandregist.viewmodel // Sesuaikan package
 
 import android.content.Context
 import android.net.Uri
-import android.util.Log
 import android.widget.Toast
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.compose.runtime.mutableStateListOf
-import kotlinx.coroutines.launch
 import com.example.splashandregist.data.model.Booking
-import com.example.splashandregist.data.repository.BookingRepository
-import com.example.splashandregist.data.repository.SimpleHotel
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import com.example.splashandregist.data.SupabaseClient
-import io.github.jan.supabase.auth.auth
-import io.github.jan.supabase.postgrest.postgrest
-import io.github.jan.supabase.storage.storage
+import com.example.splashandregist.data.repositories.BookingRepository
+import com.example.splashandregist.data.repositories.HotelOption
+import kotlinx.coroutines.launch
 
 class BookingViewModel : ViewModel() {
 
-    // 1. Panggil si Pelayan (Repository)
     private val repository = BookingRepository()
 
-    // 2. Siapkan Wadah Data (List Booking)
-    // Awalnya kosong, nanti diisi setelah data datang dari internet
+    // Data List Booking
     private val _bookings = mutableStateListOf<Booking>()
     val bookings: List<Booking> get() = _bookings
 
-    //DAFTAR HOTEL UNTUK BOOKING
-    private val _hotelOptions = mutableStateListOf<SimpleHotel>()
-    val hotelOptions: List<SimpleHotel> get() = _hotelOptions
+    // Data List Hotel (Buat Dropdown)
+    private val _hotelOptions = mutableStateListOf<HotelOption>()
+    val hotelOptions: List<HotelOption> get() = _hotelOptions
 
-//    BOOKING
-    val userId = SupabaseClient.client.auth.currentUserOrNull()?.id
-    ?: throw Exception("User belum login")
+    // Status Loading (biar tombol gak diklik 2x)
+    var isLoading by mutableStateOf(false)
+    var isUploading by mutableStateOf(false) // Alias untuk isLoading saat upload
 
-    //UPLOAD GAMBAR
-    var isUploading by mutableStateOf(false)
-        private set
-
-    // 3. Perintah: "Ambil Data Sekarang!"
+    // 1. Ambil Data Booking
     fun fetchBookings() {
         viewModelScope.launch {
             try {
-                // Suruh pelayan ambil data
                 val data = repository.getBookings()
-
-                // Bersihkan wadah lama, isi dengan yang baru
                 _bookings.clear()
                 _bookings.addAll(data)
-
-            } catch (e: Exception) {
-                // Kalau error (misal internet mati), catat di Logcat
-                println("🔥🔥 ERROR SUPABASE: ${e.message}")
-                e.printStackTrace()
-            }
+            } catch (e: Exception) { e.printStackTrace() }
         }
     }
 
-    //AMBIL DATA HOTEL
+    // 2. Ambil Data Dropdown Hotel
     fun fetchHotelOptions() {
         viewModelScope.launch {
             try {
@@ -71,82 +52,71 @@ class BookingViewModel : ViewModel() {
         }
     }
 
-    // 1. FUNGSI HAPUS (DELETE)
+    // 3. Hapus Data
     fun deleteBooking(id: Long) {
         viewModelScope.launch {
             try {
                 repository.deleteBooking(id)
-                fetchBookings() // Refresh otomatis setelah dihapus
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+                fetchBookings() // Refresh
+            } catch (e: Exception) { e.printStackTrace() }
         }
     }
 
-    // 2. FUNGSI UPDATE STATUS (UPDATE)
-    // Ubah status dari "Pending" jadi "Confirmed" (Lunas)
-    fun confirmBooking(id: Long) {
+    // 4. LOGIKA SIMPAN BOOKING (Bisa dengan Gambar atau Tanpa Gambar)
+    fun addBookingWithImage(context: Context, booking: Booking, imageUri: Uri?, onSuccess: () -> Unit) {
         viewModelScope.launch {
+            isUploading = true // Mulai Loading
             try {
-                repository.updateStatus(id, "Confirmed")
-                fetchBookings() // Refresh otomatis
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-    }
+                var finalBooking = booking
 
-    // 3. FUNGSI TAMBAH (CREATE) DENGAN LOGGING LENGKAP
-    fun addBookingWithImage(
-        context: Context,
-        booking: Booking,
-        imageUri: Uri?,
-        onSuccess: () -> Unit
-    ) {
-        viewModelScope.launch {
-            try {
-                var imageUrl: String? = null
-
-                // ===== UPLOAD IMAGE =====
+                // Jika user memilih gambar di awal
                 if (imageUri != null) {
                     val inputStream = context.contentResolver.openInputStream(imageUri)
-                        ?: throw Exception("Gagal membuka gambar")
+                    val imageBytes = inputStream?.readBytes()
 
-                    val bytes = inputStream.readBytes()
-
-                    val fileName = "booking_${System.currentTimeMillis()}.jpg"
-
-                    SupabaseClient.client.storage
-                        .from("booking-proofs")
-                        .upload(fileName, bytes)
-
-                    imageUrl = SupabaseClient.client.storage
-                        .from("booking-proofs")
-                        .publicUrl(fileName)
+                    if (imageBytes != null) {
+                        val url = repository.uploadProofImage(imageBytes)
+                        // Kalau ada gambar, status langsung Confirmed
+                        finalBooking = booking.copy(proofImageUrl = url, status = "Confirmed")
+                    }
                 }
 
-                // ===== INSERT DATA =====
-                val data = booking.copy(
-                    proofImageUrl = imageUrl
-                )
+                // Simpan ke Database
+                repository.createBooking(finalBooking)
 
-                SupabaseClient.client.postgrest["bookings"]
-                    .insert(data)
-
-                fetchBookings()
-                onSuccess()
+                fetchBookings() // Refresh List
+                onSuccess()     // Balik ke halaman list
 
             } catch (e: Exception) {
-                Log.e("BOOKING_ERROR", e.message ?: "Unknown error")
-
-                Toast.makeText(
-                    context,
-                    "Gagal menyimpan booking: ${e.message}",
-                    Toast.LENGTH_LONG
-                ).show()
+                e.printStackTrace()
+                Toast.makeText(context, "Gagal Simpan: ${e.message}", Toast.LENGTH_LONG).show()
+            } finally {
+                isUploading = false // Stop Loading
             }
         }
     }
 
+    // 5. LOGIKA KONFIRMASI LUNAS (Dari Halaman Detail)
+    fun confirmPayment(context: Context, bookingId: Long, imageUri: Uri, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            isUploading = true
+            try {
+                val inputStream = context.contentResolver.openInputStream(imageUri)
+                val imageBytes = inputStream?.readBytes()
 
+                if (imageBytes != null) {
+                    val url = repository.uploadProofImage(imageBytes)
+                    // Update Status jadi Lunas & Simpan URL
+                    repository.updateStatusWithProof(bookingId, url)
+
+                    fetchBookings()
+                    onSuccess()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(context, "Gagal Upload: ${e.message}", Toast.LENGTH_SHORT).show()
+            } finally {
+                isUploading = false
+            }
+        }
+    }
 }

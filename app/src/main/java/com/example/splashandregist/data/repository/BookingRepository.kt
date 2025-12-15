@@ -5,6 +5,8 @@ import com.example.splashandregist.data.model.Booking
 import com.example.splashandregist.data.SupabaseClient
 
 // Class ini adalah "Pelayan" khusus urusan Booking
+@Serializable
+data class SimpleHotel(val id:Long, val name:String)
 class BookingRepository {
 
     // 1. FUNGSI AMBIL DATA (READ)

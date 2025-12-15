@@ -3,8 +3,14 @@ package com.example.splashandregist.data.repository
 import io.github.jan.supabase.postgrest.from
 import com.example.splashandregist.data.model.Booking
 import com.example.splashandregist.data.SupabaseClient
+import kotlinx.serialization.Serializable
+import io.github.jan.supabase.storage.storage
+import kotlinx.serialization.SerialName
+import kotlin.random.Random
 
 // Class ini adalah "Pelayan" khusus urusan Booking
+@Serializable
+data class SimpleHotel(val id:Long, val name:String)
 class BookingRepository {
 
     // 1. FUNGSI AMBIL DATA (READ)
@@ -14,6 +20,12 @@ class BookingRepository {
             .from("bookings") // Nama tabel di Supabase
             .select()         // Perintah: Pilih semua
             .decodeList<Booking>() // Terjemahkan jadi daftar Booking
+    }
+    //FUNGSI AMBIL DATA HOTEL
+    suspend fun getHotelOptions(): List<SimpleHotel> {
+        return SupabaseClient.client.from("hotels")
+            .select(columns = io.github.jan.supabase.postgrest.query.Columns.list("id", "name"))
+            .decodeList<SimpleHotel>()
     }
 
     // 2. FUNGSI TAMBAH DATA (CREATE)
@@ -51,4 +63,17 @@ class BookingRepository {
                 }
             }
     }
+
+    //UPLOAD GAMBAR
+    suspend fun uploadProofImage(imageBytes: ByteArray): String {
+        val fileName = "proof_${System.currentTimeMillis()}_${Random.nextInt(1000)}.jpg"
+        val bucket = SupabaseClient.client.storage.from("booking-proofs")
+        bucket.upload(fileName, imageBytes) { upsert = false }
+        return bucket.publicUrl(fileName)
+    }
+    // Konfirmasi Lunas TANPA upload gambar (kalau gambar sudah diupload pas create)
+    suspend fun confirmBookingOnly(bookingId: Long) {
+        SupabaseClient.client.from("bookings").update({ set("status", "Confirmed") }) { filter { eq("id", bookingId) } }
+    }
+
 }

@@ -51,4 +51,17 @@ class BookingRepository {
                 }
             }
     }
+
+    //UPLOAD GAMBAR
+    suspend fun uploadProofImage(imageBytes: ByteArray): String {
+        val fileName = "proof_${System.currentTimeMillis()}_${Random.nextInt(1000)}.jpg"
+        val bucket = SupabaseClient.client.storage.from("booking-proofs")
+        bucket.upload(fileName, imageBytes) { upsert = false }
+        return bucket.publicUrl(fileName)
+    }
+    // Konfirmasi Lunas TANPA upload gambar (kalau gambar sudah diupload pas create)
+    suspend fun confirmBookingOnly(bookingId: Long) {
+        SupabaseClient.client.from("bookings").update({ set("status", "Confirmed") }) { filter { eq("id", bookingId) } }
+    }
+
 }

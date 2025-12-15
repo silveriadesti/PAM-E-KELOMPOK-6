@@ -55,6 +55,8 @@ class HotelViewModel : ViewModel() {
         }
     }
 
+
+
     // 2. Ambil 1 Hotel berdasarkan ID (DETAIL)
     fun getHotelById(id: String): Hotel? {
         val idLong = id.toLongOrNull()

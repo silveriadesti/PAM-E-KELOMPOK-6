@@ -9,6 +9,8 @@ appcompat = "1.7.1"
 material = "1.13.0"
 activity = "1.11.0"
 constraintlayout = "2.2.1"
+navigationRuntimeKtx = "2.9.6"
+supabase = "2.6.3"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -19,6 +21,11 @@ androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 androidx-activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
+androidx-navigation-runtime-ktx = { group = "androidx.navigation", name = "navigation-runtime-ktx", version.ref = "navigationRuntimeKtx" }
+supabase-bom = { group = "io.github.jan-supabase", name = "bom", version.ref = "supabase" }
+supabase-gotrue = { group = "io.github.jan-supabase", name = "gotrue-kt" }
+supabase-postgrest = { group = "io.github.jan-supabase", name = "postgrest-kt" }
+supabase-storage = { group = "io.github.jan-supabase", name = "storage-kt" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

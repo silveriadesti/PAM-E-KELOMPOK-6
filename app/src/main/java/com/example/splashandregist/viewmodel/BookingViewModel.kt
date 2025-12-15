@@ -6,6 +6,8 @@ import androidx.compose.runtime.mutableStateListOf
 import kotlinx.coroutines.launch
 import com.example.splashandregist.data.model.Booking
 import com.example.splashandregist.data.repository.BookingRepository
+import com.example.splashandregist.data.repository.SimpleHotel
+import androidx.compose.runtime.mutableStateOf
 
 class BookingViewModel : ViewModel() {
 

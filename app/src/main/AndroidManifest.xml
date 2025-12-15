@@ -18,14 +18,7 @@
         <activity
             android:name=".ui.screens.TransportActivity"
             android:exported="true"
-            android:theme="@style/Theme.Material3.DayNight.NoActionBar">
-
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-
-        </activity>
+            android:theme="@style/Theme.Material3.DayNight.NoActionBar"/>
 
         <activity
             android:name=".MainActivity"
@@ -55,8 +48,19 @@
         <activity
             android:name=".ui.screens.EventActivity"
             android:exported="false"
+            android:theme="@style/Theme.Material3.DayNight.NoActionBar"/>
+
+        <activity
+            android:name=".BookingActivity"
+            android:exported="true"
             android:theme="@style/Theme.Material3.DayNight.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
         </activity>
+
     </application>
 
 

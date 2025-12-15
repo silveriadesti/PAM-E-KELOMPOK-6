@@ -32,4 +32,5 @@ data class Booking(
     val proofImageUrl: String? = null,
 
     val status: String? = "Pending"
+
 )

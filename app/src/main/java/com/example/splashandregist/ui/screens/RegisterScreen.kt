@@ -79,12 +79,6 @@ fun RegisterScreen() {
             color = MaterialTheme.colorScheme.primary
         )
 
-        Text(
-            text = "Sign up to get started",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-            modifier = Modifier.padding(top = 4.dp)
-        )
 
         Spacer(modifier = Modifier.height(32.dp))
 

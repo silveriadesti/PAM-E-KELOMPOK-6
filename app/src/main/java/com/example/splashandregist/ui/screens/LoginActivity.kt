@@ -29,6 +29,13 @@ import androidx.compose.ui.unit.sp
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import com.example.splashandregist.viewmodel.LoginViewModel
+import androidx.compose.foundation.text.ClickableText
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.style.TextDecoration
+import kotlin.jvm.java
 
 
 class LoginActivity : ComponentActivity() {
@@ -157,12 +164,40 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Text(
-            text = "Forgot Password?",
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.clickable {
-                Toast.makeText(context, "Lupa Password diklik", Toast.LENGTH_SHORT).show()
+        val annotatedText = buildAnnotatedString {
+            append("Belum punya akun? ")
+
+            pushStringAnnotation(
+                tag = "REGISTER",
+                annotation = "register"
+            )
+            withStyle(
+                style = SpanStyle(
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold,
+                    textDecoration = TextDecoration.Underline
+                )
+            ) {
+                append("Register")
+            }
+            pop()
+        }
+
+        ClickableText(
+            text = annotatedText,
+            onClick = { offset ->
+                annotatedText.getStringAnnotations(
+                    tag = "REGISTER",
+                    start = offset,
+                    end = offset
+                ).firstOrNull()?.let {
+                    // Navigasi ke RegisterScreen
+                    context.startActivity(
+                        Intent(context, RegisterActivity::class.java)
+                    )
+                }
             }
         )
+
     }
 }

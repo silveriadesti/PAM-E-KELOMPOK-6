@@ -15,8 +15,9 @@
         android:theme="@style/Theme.SplashAndRegist"
         tools:targetApi="31">
 
+        <!-- ✅ HOME / LAUNCHER -->
         <activity
-            android:name=".ui.screens.TransportActivity"
+            android:name=".ui.screens.HomeActivity"
             android:exported="true"
             android:theme="@style/Theme.Material3.DayNight.NoActionBar">
 
@@ -27,8 +28,9 @@
 
         </activity>
 
+        <!-- 🔽 ACTIVITY LAIN (NON-LAUNCHER) -->
         <activity
-            android:name=".MainActivity"
+            android:name=".ui.screens.TransportActivity"
             android:exported="false"
             android:theme="@style/Theme.Material3.DayNight.NoActionBar" />
 
@@ -55,9 +57,10 @@
         <activity
             android:name=".ui.screens.EventActivity"
             android:exported="false"
-            android:theme="@style/Theme.Material3.DayNight.NoActionBar">
-        </activity>
-    </application>
+            android:theme="@style/Theme.Material3.DayNight.NoActionBar" />
 
+        <activity android:name=".ui.screens.RegisterActivity" />
+
+    </application>
 
 </manifest>

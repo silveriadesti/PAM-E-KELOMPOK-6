@@ -1,4 +1,4 @@
-package com.example.splashandregist.ui.screens
+package com.example.splashandregist.viewmodel
 
 import android.content.Context
 import android.net.Uri

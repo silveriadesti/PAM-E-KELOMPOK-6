@@ -11,9 +11,10 @@ import com.example.splashandregist.ui.common.UiResult
 import com.example.splashandregist.viewmodel.AuthViewModel
 
 @Composable
-fun RegisterScreen(
+fun LoginScreen(
     viewModel: AuthViewModel,
-    onRegisterSuccess: () -> Unit
+    onLoginSuccess: () -> Unit,
+    onNavigateRegister: () -> Unit
 ) {
     val state by viewModel.authState.collectAsState()
 
@@ -22,7 +23,7 @@ fun RegisterScreen(
 
     LaunchedEffect(state) {
         if (state is UiResult.Success && (state as UiResult.Success).data) {
-            onRegisterSuccess()
+            onLoginSuccess()
         }
     }
 
@@ -31,7 +32,7 @@ fun RegisterScreen(
             Modifier.padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Register", style = MaterialTheme.typography.headlineMedium)
+            Text("Login", style = MaterialTheme.typography.headlineMedium)
 
             OutlinedTextField(
                 value = email,
@@ -47,10 +48,14 @@ fun RegisterScreen(
             )
 
             Button(
-                onClick = { viewModel.register(email, password) },
+                onClick = { viewModel.login(email, password) },
                 enabled = state !is UiResult.Loading
             ) {
-                Text(if (state is UiResult.Loading) "Loading..." else "Register")
+                Text(if (state is UiResult.Loading) "Loading..." else "Login")
+            }
+
+            TextButton(onClick = onNavigateRegister) {
+                Text("Belum punya akun? Register")
             }
 
             if (state is UiResult.Error) {

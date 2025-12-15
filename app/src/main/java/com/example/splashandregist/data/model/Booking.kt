@@ -7,6 +7,9 @@ import kotlinx.serialization.Serializable
 data class Booking(
     val id: Long? = null,
 
+    @SerialName("user_id")
+    val userId: String? = null,
+
     @SerialName("customer_name")
     val customerName: String? = "", // Tambah ? dan default value
 

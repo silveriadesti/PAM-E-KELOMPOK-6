@@ -6,6 +6,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.ViewModel
 import com.example.splashandregist.data.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
@@ -28,7 +29,7 @@ data class Destinations(
     val user_id: String? = null  // ← UBAH: Sekarang nullable (boleh null)
 )
 
-class DestinationViewModel {
+class DestinationViewModel : ViewModel() {
     var destinations = mutableStateListOf<Destinations>()
         private set
 
@@ -60,7 +61,7 @@ class DestinationViewModel {
     }
 
     // Get destination by ID
-    fun getDestinationById(id: String): Destinations? {
+    fun getDestinationById(id: String?): Destinations? {
         return destinations.find { it.id == id }
     }
 

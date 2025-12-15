@@ -1,71 +1,56 @@
 package com.example.splashandregist.viewmodel
 
-import android.content.Context
-import android.widget.Toast
-import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.splashandregist.data.SupabaseClient
-import io.github.jan.supabase.auth.auth
-import io.github.jan.supabase.auth.providers.builtin.Email
-import io.github.jan.supabase.postgrest.from
+import com.example.splashandregist.data.repositories.AuthRepository
+import com.example.splashandregist.ui.common.UiResult
+import io.github.jan.supabase.auth.status.SessionStatus
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
 
+class AuthViewModel(
+    private val repo: AuthRepository = AuthRepository()
+) : ViewModel() {
 
-@Serializable
-data class UserProfile(
-    @SerialName("email") val email: String,
-    @SerialName("role") val role: String
-)
-class LoginViewModel : ViewModel() {
+    private val _authState = MutableStateFlow<UiResult<Boolean>>(UiResult.Idle)
+    val authState: StateFlow<UiResult<Boolean>> = _authState
 
-    private val _isLoading = mutableStateOf(false)
-    val isLoading: State<Boolean> = _isLoading
+    val isAuthenticated: StateFlow<Boolean> = repo.sessionStatus
+        .map { it is SessionStatus.Authenticated }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = repo.currentSession() != null
+        )
 
-    fun login(
-        context: Context,
-        emailInput: String,
-        passwordInput: String,
-        onLoginSuccess: (String) -> Unit // String ini nanti isinya 'admin' atau 'customer'
-    ) {
+    fun register(email: String, password: String) {
+        _authState.value = UiResult.Loading
         viewModelScope.launch {
-            _isLoading.value = true
             try {
-                // 1. Login ke Supabase Auth (Cek Password)
-                SupabaseClient.client.auth.signInWith(Email) {
-                    email = emailInput
-                    password = passwordInput
-                }
-
-                // 2. Jika Password benar, Cari Role dia di tabel 'users'
-                // Kita cari berdasarkan email yang sedang login
-                val userProfile = SupabaseClient.client
-                    .from("users")
-                    .select {
-                        filter {
-                            eq("email", emailInput)
-                        }
-                    }
-                    .decodeSingle<UserProfile>() // Ambil 1 data saja
-
-                // 3. Kabari UI bahwa login sukses & kirim Role-nya
-                onLoginSuccess(userProfile.role)
-
+                repo.register(email, password)
+                _authState.value = UiResult.Success(true)
             } catch (e: Exception) {
-                e.printStackTrace()
-                // Cek error khusus (Password salah vs User tidak ada)
-                val message = if (e.message?.contains("Invalid login") == true) {
-                    "Email atau Password Salah!"
-                } else {
-                    "Login Gagal: ${e.message}"
-                }
-                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-            } finally {
-                _isLoading.value = false
+                _authState.value = UiResult.Error(e.message ?: "Register gagal")
             }
+        }
+    }
+
+    fun login(email: String, password: String) {
+        _authState.value = UiResult.Loading
+        viewModelScope.launch {
+            try {
+                repo.login(email, password)
+                _authState.value = UiResult.Success(true)
+            } catch (e: Exception) {
+                _authState.value = UiResult.Error(e.message ?: "Login gagal")
+            }
+        }
+    }
+
+    fun logout() {
+        viewModelScope.launch {
+            repo.logout()
+            _authState.value = UiResult.Success(false)
         }
     }
 }

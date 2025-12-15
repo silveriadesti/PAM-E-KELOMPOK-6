@@ -60,6 +60,7 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.12.1")
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.activity)
+    implementation("androidx.credentials:credentials:1.3.0")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
 

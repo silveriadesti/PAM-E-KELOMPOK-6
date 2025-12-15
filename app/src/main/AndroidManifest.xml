@@ -15,8 +15,9 @@
         android:theme="@style/Theme.SplashAndRegist"
         tools:targetApi="31">
 
+        <!-- SATU-SATUNYA ACTIVITY -->
         <activity
-            android:name=".ui.screens.HomeActivity"
+            android:name=".MainActivity"
             android:exported="true"
             android:theme="@style/Theme.Material3.DayNight.NoActionBar">
 
@@ -27,52 +28,6 @@
 
         </activity>
 
-        <activity
-            android:name=".MainActivity"
-            android:exported="false"
-            android:theme="@style/Theme.Material3.DayNight.NoActionBar" />
-
-        <activity
-            android:name=".ui.screens.LoginActivity"
-            android:exported="false"
-            android:theme="@style/Theme.Material3.DayNight.NoActionBar" />
-
-        <activity
-            android:name=".ui.screens.HotelActivity"
-            android:exported="false"
-            android:theme="@style/Theme.Material3.DayNight.NoActionBar" />
-
-        <activity
-            android:name=".ui.screens.DestinationActivity"
-            android:exported="false"
-            android:theme="@style/Theme.Material3.DayNight.NoActionBar" />
-
-        <activity
-            android:name=".ui.screens.PromoActivity"
-            android:exported="false"
-            android:theme="@style/Theme.Material3.DayNight.NoActionBar" />
-
-        <activity
-            android:name=".ui.screens.EventActivity"
-            android:exported="false"
-            android:theme="@style/Theme.Material3.DayNight.NoActionBar"/>
-
-        <activity
-            android:name=".BookingActivity"
-            android:exported="false"
-            android:theme="@style/Theme.Material3.DayNight.NoActionBar">
-
-        <activity
-            android:name=".ui.screens.TransportActivity"
-            android:exported="false"
-            android:theme="@style/Theme.Material3.DayNight.NoActionBar" />
-
-        <activity
-            android:name=".ui.screens.RegisterActivity"
-            android:exported="false"
-            android:theme="@style/Theme.Material3.DayNight.NoActionBar" />/>
-
     </application>
-
 
 </manifest>

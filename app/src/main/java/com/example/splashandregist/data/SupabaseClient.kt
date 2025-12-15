@@ -1,9 +1,11 @@
 package com.example.splashandregist.data
 
 import io.github.jan.supabase.auth.Auth
+import io.github.jan.supabase.auth.user.UserSession
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.storage.Storage
+import io.github.jan.supabase.auth.auth // Import the auth extension
 
 // Gunakan 'object' agar dia jadi Singleton (Cuma ada 1 koneksi untuk seluruh aplikasi)
 object SupabaseClient {
@@ -16,8 +18,12 @@ object SupabaseClient {
         supabaseKey = SUPABASE_KEY
     ) {
         // Pasang fitur-fitur yang mau dipakai
-        install(Auth.Companion)      // Buat Login
-        install(Postgrest.Companion) // Buat Database (CRUD)
-        install(Storage.Companion)   // Buat Upload Gambar
+        // CORRECTED: Remove '.Companion'
+        install(Auth)
+        install(Postgrest)
+        install(Storage)
     }
+
+    // CORRECTED: Access the local 'client' instance directly
+    fun session(): UserSession? = client.auth.currentSessionOrNull()
 }

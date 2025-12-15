@@ -1,42 +1,36 @@
-package com.example.splashandregist // Pastikan nama package ini benar
+package com.example.splashandregist.data.model// Pastikan nama package ini benar
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-@Serializable // <-- Stempel Wajib: "Data ini boleh dikirim lewat Internet"
+@Serializable
 data class Booking(
-    // 1. ID Pesanan (Dibuat otomatis oleh Supabase, jadi boleh kosong/null saat kita baru buat)
     val id: Long? = null,
 
-    // 2. Data Tamu
-    @SerialName("customer_name") // Ini nama di Supabase (pake garis bawah)
-    val customerName: String,    // Ini nama di Kotlin (pake huruf besar di tengah)
+    @SerialName("customer_name")
+    val customerName: String? = "", // Tambah ? dan default value
 
     @SerialName("customer_contact")
-    val customerContact: String,
+    val customerContact: String? = "",
 
-    // 3. Info Hotel (Relasi)
     @SerialName("hotel_id")
-    val hotelId: Long, // ID Hotel yang dipesan
+    val hotelId: Long? = 0,
 
     @SerialName("hotel_name")
-    val hotelName: String, // Nama Hotel (disimpan juga biar gampang ditampilkan)
+    val hotelName: String? = "Unknown Hotel", // Jaga-jaga kalau hotelnya null
 
-    // 4. Tanggal & Harga
     @SerialName("check_in_date")
-    val checkInDate: String, // Kita pakai String dulu biar mudah (format: "2023-12-25")
+    val checkInDate: String? = "",
 
     @SerialName("check_out_date")
-    val checkOutDate: String,
+    val checkOutDate: String? = "",
 
     @SerialName("total_price")
-    val totalPrice: String,
+    val totalPrice: String? = "",
 
-    // 5. Status Booking (Pending, Confirmed, Cancelled)
     @SerialName("status")
-    val status: String = "Pending", // Defaultnya "Pending" kalau tidak diisi
+    val status: String = "Pending",
 
-    // 6. User ID (Keamanan)
     @SerialName("user_id")
     val userId: String? = null
 )

@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.compose.runtime.mutableStateListOf
 import kotlinx.coroutines.launch
+import com.example.splashandregist.data.repositories.BookingRepository
+import com.example.splashandregist.data.model.Booking
 
 class BookingViewModel : ViewModel() {
 
@@ -28,6 +30,7 @@ class BookingViewModel : ViewModel() {
 
             } catch (e: Exception) {
                 // Kalau error (misal internet mati), catat di Logcat
+                println("🔥🔥 ERROR SUPABASE: ${e.message}")
                 e.printStackTrace()
             }
         }

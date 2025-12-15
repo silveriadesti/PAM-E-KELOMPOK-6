@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.splashandregist.data.model.Booking
 
 class BookingActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -193,7 +194,11 @@ fun BookingItemCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = booking.hotelName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(
+                    text = booking.hotelName ?: "Nama Hotel",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
                 Surface(
                     color = if (booking.status == "Confirmed") Color(0xFFE8F5E9) else Color(0xFFFFF3E0),
                     shape = RoundedCornerShape(8.dp)
@@ -212,7 +217,7 @@ fun BookingItemCard(
             Text(text = "Tamu: ${booking.customerName}", style = MaterialTheme.typography.bodyMedium)
             Text(text = "Kontak: ${booking.customerContact}", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
             Text(text = "${booking.checkInDate} - ${booking.checkOutDate}", style = MaterialTheme.typography.bodySmall)
-            Text(text = booking.totalPrice, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            booking.totalPrice?.let { Text(text = it, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary) }
 
             Spacer(modifier = Modifier.height(12.dp))
             Divider()

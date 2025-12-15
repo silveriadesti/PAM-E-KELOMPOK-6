@@ -1,5 +1,6 @@
 package com.example.splashandregist
 
+import com.example.splashandregist.data.remote.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import com.example.splashandregist.data.model.Booking
 

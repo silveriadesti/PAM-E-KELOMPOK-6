@@ -84,6 +84,8 @@ class BookingViewModel : ViewModel() {
                 fetchBookings() // Refresh otomatis
             } catch (e: Exception) {
                 e.printStackTrace()
+            } finally {
+                isUploading = false
             }
         }
     }

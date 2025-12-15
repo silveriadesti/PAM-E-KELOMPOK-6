@@ -1,6 +1,7 @@
 package com.example.splashandregist
 
 import io.github.jan.supabase.postgrest.from
+import com.example.splashandregist.data.model.Booking
 
 // Class ini adalah "Pelayan" khusus urusan Booking
 class BookingRepository {

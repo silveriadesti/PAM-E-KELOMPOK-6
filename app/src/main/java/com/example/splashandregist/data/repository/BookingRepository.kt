@@ -15,6 +15,12 @@ class BookingRepository {
             .select()         // Perintah: Pilih semua
             .decodeList<Booking>() // Terjemahkan jadi daftar Booking
     }
+    //FUNGSI AMBIL DATA HOTEL
+    suspend fun getHotelOptions(): List<SimpleHotel> {
+        return SupabaseClient.client.from("hotels")
+            .select(columns = io.github.jan.supabase.postgrest.query.Columns.list("id", "name"))
+            .decodeList<SimpleHotel>()
+    }
 
     // 2. FUNGSI TAMBAH DATA (CREATE)
     // "Tolong antarkan pesanan baru ini ke dapur"

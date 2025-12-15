@@ -8,6 +8,8 @@ import com.example.splashandregist.data.model.Booking
 import com.example.splashandregist.data.repository.BookingRepository
 import com.example.splashandregist.data.repository.SimpleHotel
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 
 class BookingViewModel : ViewModel() {
 

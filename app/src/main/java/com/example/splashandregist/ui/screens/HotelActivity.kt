@@ -183,7 +183,7 @@ fun AddHotelScreen(navController: NavController, viewModel: HotelViewModel) {
             TopAppBar(
                 title = { Text("Tambah Hotel Baru") },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }, enabled = !isUploading) {
+                    IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 }
@@ -209,7 +209,7 @@ fun AddHotelScreen(navController: NavController, viewModel: HotelViewModel) {
                     contentAlignment = Alignment.Center
                 ) {
                     if (selectedImageUri != null) {
-                        AsyncImage(model = selectedImageUri, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                        AsyncImage(model = selectedImageUri, contentDescription = "Selected Image", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                     } else {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(Icons.Default.Add, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(40.dp))

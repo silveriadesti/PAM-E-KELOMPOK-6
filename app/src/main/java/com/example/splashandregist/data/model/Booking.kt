@@ -28,5 +28,9 @@ data class Booking(
     @SerialName("total_price")
     val totalPrice: String? = "",
 
+    @SerialName("proof_image_url")
+    val proofImageUrl: String? = null,
+
     val status: String? = "Pending"
+
 )

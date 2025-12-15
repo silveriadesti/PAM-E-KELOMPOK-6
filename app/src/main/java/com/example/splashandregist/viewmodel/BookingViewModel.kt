@@ -1,11 +1,17 @@
 package com.example.splashandregist.viewmodel
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.compose.runtime.mutableStateListOf
 import kotlinx.coroutines.launch
 import com.example.splashandregist.data.model.Booking
 import com.example.splashandregist.data.repository.BookingRepository
+import com.example.splashandregist.data.repository.SimpleHotel
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 
 class BookingViewModel : ViewModel() {
 
@@ -16,6 +22,14 @@ class BookingViewModel : ViewModel() {
     // Awalnya kosong, nanti diisi setelah data datang dari internet
     private val _bookings = mutableStateListOf<Booking>()
     val bookings: List<Booking> get() = _bookings
+
+    //DAFTAR HOTEL UNTUK BOOKING
+    private val _hotelOptions = mutableStateListOf<SimpleHotel>()
+    val hotelOptions: List<SimpleHotel> get() = _hotelOptions
+
+    //UPLOAD GAMBAR
+    var isUploading by mutableStateOf(false)
+        private set
 
     // 3. Perintah: "Ambil Data Sekarang!"
     fun fetchBookings() {
@@ -35,7 +49,17 @@ class BookingViewModel : ViewModel() {
             }
         }
     }
-// ... kode lama (fetchBookings) biarkan di atas ...
+
+    //AMBIL DATA HOTEL
+    fun fetchHotelOptions() {
+        viewModelScope.launch {
+            try {
+                val data = repository.getHotelOptions()
+                _hotelOptions.clear()
+                _hotelOptions.addAll(data)
+            } catch (e: Exception) { e.printStackTrace() }
+        }
+    }
 
     // 1. FUNGSI HAPUS (DELETE)
     fun deleteBooking(id: Long) {
@@ -62,14 +86,52 @@ class BookingViewModel : ViewModel() {
         }
     }
 
-    // 3. FUNGSI TAMBAH (CREATE)
-    fun addBooking(booking: Booking) {
+    // 3. FUNGSI TAMBAH (CREATE) DENGAN LOGGING LENGKAP
+    fun addBookingWithImage(context: Context, booking: Booking, imageUri: Uri?, onSuccess: () -> Unit) {
         viewModelScope.launch {
+            isUploading = true
+            println("🚀 [DEBUG] Memulai proses Add Booking...") // Log 1
+
             try {
-                repository.createBooking(booking)
-                fetchBookings() // Refresh otomatis
+                var finalBooking = booking
+
+                // Kalau ada gambar dipilih, upload dulu
+                if (imageUri != null) {
+                    println("📸 [DEBUG] URI Gambar ditemukan: $imageUri") // Log 2
+
+                    val inputStream = context.contentResolver.openInputStream(imageUri)
+                    val imageBytes = inputStream?.readBytes()
+
+                    if (imageBytes != null) {
+                        println("📦 [DEBUG] Berhasil baca file gambar. Ukuran: ${imageBytes.size} bytes") // Log 3
+
+                        // Upload ke Supabase Storage
+                        val url = repository.uploadProofImage(imageBytes)
+                        println("✅ [DEBUG] Upload Sukses! URL: $url") // Log 4
+
+                        // Update objek booking dengan URL gambar
+                        finalBooking = booking.copy(proofImageUrl = url)
+                    } else {
+                        println("❌ [DEBUG] Gagal membaca bytes gambar (null)")
+                    }
+                } else {
+                    println("ℹ️ [DEBUG] Tidak ada gambar yang dipilih")
+                }
+
+                // Simpan ke database
+                println("floppy_disk [DEBUG] Menyimpan data ke database...") // Log 5
+                repository.createBooking(finalBooking)
+
+                println("🎉 [DEBUG] BERHASIL SEMUA!") // Log 6
+                fetchBookings()
+                onSuccess()
+
             } catch (e: Exception) {
+                // INI YANG PENTING UNTUK DILIHAT
+                println("🔥🔥 [ERROR FATAL] Gagal menyimpan: ${e.message}")
                 e.printStackTrace()
+            } finally {
+                isUploading = false
             }
         }
     }

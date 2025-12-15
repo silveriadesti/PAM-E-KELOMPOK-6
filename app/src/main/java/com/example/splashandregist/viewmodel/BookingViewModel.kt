@@ -19,6 +19,14 @@ class BookingViewModel : ViewModel() {
     private val _bookings = mutableStateListOf<Booking>()
     val bookings: List<Booking> get() = _bookings
 
+    //DAFTAR HOTEL UNTUK BOOKING
+    private val _hotelOptions = mutableStateListOf<SimpleHotel>()
+    val hotelOptions: List<SimpleHotel> get() = _hotelOptions
+
+    //UPLOAD GAMBAR
+    var isUploading by mutableStateOf(false)
+        private set
+
     // 3. Perintah: "Ambil Data Sekarang!"
     fun fetchBookings() {
         viewModelScope.launch {

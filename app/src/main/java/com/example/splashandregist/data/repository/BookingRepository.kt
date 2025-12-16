@@ -1,4 +1,4 @@
-package com.example.splashandregist.data.repositories // Sesuaikan package
+package com.example.splashandregist.data.repository // Sesuaikan package
 
 import com.example.splashandregist.data.SupabaseClient
 import com.example.splashandregist.data.model.Booking

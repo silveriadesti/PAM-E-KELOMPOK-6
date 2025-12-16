@@ -7,63 +7,68 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import com.example.splashandregist.ui.common.UiResult
+import com.example.splashandregist.ui.common.AuthUiState
 import com.example.splashandregist.viewmodel.AuthViewModel
 
 @Composable
 fun LoginScreen(
     viewModel: AuthViewModel,
-    onLoginSuccess: () -> Unit,
     onNavigateRegister: () -> Unit
 ) {
-    val state by viewModel.authState.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
-    LaunchedEffect(state) {
-        if (state is UiResult.Success && (state as UiResult.Success).data) {
-            onLoginSuccess()
-        }
-    }
+    Column(
+        Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.Center
+    ) {
 
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(
-            Modifier.padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+        OutlinedTextField(
+            value = email,
+            onValueChange = { email = it },
+            label = { Text("Email") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        OutlinedTextField(
+            value = password,
+            onValueChange = { password = it },
+            label = { Text("Password") },
+            visualTransformation = PasswordVisualTransformation(),
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        Button(
+            modifier = Modifier.fillMaxWidth(),
+            enabled = uiState !is AuthUiState.Loading,
+            onClick = { viewModel.login(email, password) }
         ) {
-            Text("Login", style = MaterialTheme.typography.headlineMedium)
-
-            OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = { Text("Email") }
-            )
-
-            OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = { Text("Password") },
-                visualTransformation = PasswordVisualTransformation()
-            )
-
-            Button(
-                onClick = { viewModel.login(email, password) },
-                enabled = state !is UiResult.Loading
-            ) {
-                Text(if (state is UiResult.Loading) "Loading..." else "Login")
-            }
-
-            TextButton(onClick = onNavigateRegister) {
-                Text("Belum punya akun? Register")
-            }
-
-            if (state is UiResult.Error) {
-                Text(
-                    text = (state as UiResult.Error).message,
-                    color = MaterialTheme.colorScheme.error
+            if (uiState is AuthUiState.Loading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    strokeWidth = 2.dp
                 )
+            } else {
+                Text("Login")
             }
+        }
+
+        TextButton(onClick = onNavigateRegister) {
+            Text("Register")
+        }
+
+        if (uiState is AuthUiState.Error) {
+            Text(
+                (uiState as AuthUiState.Error).message,
+                color = MaterialTheme.colorScheme.error
+            )
         }
     }
 }
+

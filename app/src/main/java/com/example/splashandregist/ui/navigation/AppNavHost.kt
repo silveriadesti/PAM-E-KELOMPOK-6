@@ -7,7 +7,7 @@ import androidx.compose.runtime.getValue
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.example.splashandregist.ui.common.UiResult
+import com.example.splashandregist.ui.common.AuthUiState
 import com.example.splashandregist.ui.screens.BookingScreen
 import com.example.splashandregist.ui.screens.DestinationScreen
 import com.example.splashandregist.ui.screens.EventScreen
@@ -23,24 +23,16 @@ fun AppNavHost(
     navController: NavHostController,
     authViewModel: AuthViewModel
 ) {
-    val authState by authViewModel.authState.collectAsState()
+    val isAuthenticated by authViewModel.isAuthenticated.collectAsState()
 
-    /**
-     * AUTO REDIRECT
-     * Kalau sudah login → Home
-     * Kalau logout → Login
-     */
-    LaunchedEffect(authState) {
-        if (authState is UiResult.Success) {
-            val isLoggedIn = (authState as UiResult.Success).data
-            if (isLoggedIn) {
-                navController.navigate(NavRoutes.Home.route) {
-                    popUpTo(NavRoutes.Login.route) { inclusive = true }
-                }
-            } else {
-                navController.navigate(NavRoutes.Login.route) {
-                    popUpTo(0)
-                }
+    LaunchedEffect(isAuthenticated) {
+        if (isAuthenticated) {
+            navController.navigate(NavRoutes.Home.route) {
+                popUpTo(0)
+            }
+        } else {
+            navController.navigate(NavRoutes.Login.route) {
+                popUpTo(0)
             }
         }
     }
@@ -53,11 +45,6 @@ fun AppNavHost(
         composable(NavRoutes.Login.route) {
             LoginScreen(
                 viewModel = authViewModel,
-                onLoginSuccess = {
-                    navController.navigate(NavRoutes.Home.route) {
-                        popUpTo(NavRoutes.Login.route) { inclusive = true }
-                    }
-                },
                 onNavigateRegister = {
                     navController.navigate(NavRoutes.Register.route)
                 }
@@ -65,68 +52,26 @@ fun AppNavHost(
         }
 
         composable(NavRoutes.Register.route) {
-            RegisterScreen(
-                viewModel = authViewModel,
-                onRegisterSuccess = {
-                    navController.navigate(NavRoutes.Home.route) {
-                        popUpTo(NavRoutes.Register.route) { inclusive = true }
-                    }
-                }
-            )
+            RegisterScreen(viewModel = authViewModel)
         }
 
         composable(NavRoutes.Home.route) {
             HomeScreen(
-                onDestinasiClick = {
-                    navController.navigate(NavRoutes.Destinasi.route)
-                },
-                onEventClick = {
-                    navController.navigate(NavRoutes.Event.route)
-                },
-                onHotelClick = {
-                    navController.navigate(NavRoutes.Hotel.route)
-                },
-                onTransportClick = {
-                    navController.navigate(NavRoutes.Transport.route)
-                },
-                onPromoClick = {
-                    navController.navigate(NavRoutes.Promo.route)
-                },
-                onBookingClick = {
-                    navController.navigate(NavRoutes.Booking.route)
-                },
-                onLogoutClick = {
-                    authViewModel.logout()
-                    navController.navigate(NavRoutes.Login.route) {
-                        popUpTo(NavRoutes.Home.route) { inclusive = true }
-                    }
-                }
+                onLogoutClick = { authViewModel.logout() },
+                onBookingClick = { navController.navigate(NavRoutes.Booking.route) },
+                onPromoClick = { navController.navigate(NavRoutes.Promo.route) },
+                onDestinasiClick = { navController.navigate(NavRoutes.Destinasi.route) },
+                onEventClick = { navController.navigate(NavRoutes.Event.route) },
+                onHotelClick = { navController.navigate(NavRoutes.Hotel.route) },
+                onTransportClick = { navController.navigate(NavRoutes.Transport.route) }
             )
         }
 
-        composable(NavRoutes.Destinasi.route) {
-            DestinationScreen()
-        }
-//
-        composable(NavRoutes.Event.route) {
-            EventScreen()
-        }
-//
-        composable(NavRoutes.Hotel.route) {
-            HotelScreen()
-        }
-
-        composable(NavRoutes.Transport.route) {
-            TransportScreen()
-        }
-
-        composable(NavRoutes.Promo.route) {
-            PromoScreen()
-        }
-//
-        composable(NavRoutes.Booking.route) {
-            BookingScreen()
-        }
-
+        composable(NavRoutes.Booking.route) { BookingScreen() }
+        composable(NavRoutes.Promo.route) { PromoScreen() }
+        composable(NavRoutes.Destinasi.route) { DestinationScreen() }
+        composable(NavRoutes.Event.route) { EventScreen() }
+        composable(NavRoutes.Hotel.route) { HotelScreen() }
+        composable(NavRoutes.Transport.route) { TransportScreen() }
     }
 }

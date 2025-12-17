@@ -33,7 +33,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
-import com.example.splashandregist.viewmodel.Promo
+import com.example.splashandregist.data.model.Promo
 import com.example.splashandregist.viewmodel.PromoViewModel
 
 /* ================= ROOT PROMO SCREEN ================= */

@@ -2,15 +2,14 @@ package com.example.splashandregist.data.repository // Sesuaikan package
 
 import com.example.splashandregist.data.SupabaseClient
 import com.example.splashandregist.data.model.Booking
+import com.example.splashandregist.data.model.HotelOption
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.storage.storage
-import kotlinx.serialization.Serializable
 import kotlin.random.Random
 
 // Class kecil khusus untuk data Dropdown Hotel
-@Serializable
-data class HotelOption(val id: Long, val name: String)
+
 
 class BookingRepository {
 

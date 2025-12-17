@@ -11,7 +11,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.splashandregist.data.model.Booking
 import com.example.splashandregist.data.repository.BookingRepository
-import com.example.splashandregist.data.repository.HotelOption
+import com.example.splashandregist.data.model.HotelOption
 import kotlinx.coroutines.launch
 
 class BookingViewModel : ViewModel() {

@@ -35,7 +35,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import android.net.Uri
-import com.example.splashandregist.viewmodel.Transport
+import com.example.splashandregist.data.model.Transport
 import com.example.splashandregist.viewmodel.TransportViewModel
 
 /* ================= ACTIVITY ================= */

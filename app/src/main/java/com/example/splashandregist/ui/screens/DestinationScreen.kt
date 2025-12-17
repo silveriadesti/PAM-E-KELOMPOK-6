@@ -33,7 +33,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
-import com.example.splashandregist.viewmodel.Destinations
+import com.example.splashandregist.data.model.Destinations
 import com.example.splashandregist.viewmodel.DestinationViewModel
 
 /* ================= ROOT SCREEN ================= */

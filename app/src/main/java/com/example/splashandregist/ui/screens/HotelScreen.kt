@@ -35,7 +35,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
-import com.example.splashandregist.viewmodel.Hotel
+import com.example.splashandregist.data.model.Hotel
 import com.example.splashandregist.viewmodel.HotelViewModel
 
 /* ================= ROOT HOTEL SCREEN ================= */

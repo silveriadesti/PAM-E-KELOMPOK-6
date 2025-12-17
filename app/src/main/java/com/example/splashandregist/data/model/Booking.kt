@@ -38,3 +38,9 @@ data class Booking(
     @SerialName("proof_image_url")
     val proofImageUrl: String? = null
 )
+
+@Serializable
+data class HotelOption(
+    val id: Long,
+    val name: String
+)
